@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { addClient, updateClient, deleteClient } from './actions'
 import DataTable from '@/components/DataTable'
-
+import Link from 'next/link'
 export default function ClientsTable({ initialClients }) {
   const [clients] = useState(initialClients)
   const [modalOpen, setModalOpen] = useState(false)
@@ -48,7 +48,15 @@ export default function ClientsTable({ initialClients }) {
   }
 
   const columns = [
-    { key: 'name', header: 'Name' },
+    {
+      key: 'name',
+      header: 'Name',
+      render: (c) => (
+        <Link href={`/clients/${c.id}/ledger`} className="text-blue-600 hover:underline">
+          {c.name}
+        </Link>
+      ),
+    }, ,
     {
       key: 'balance',
       header: 'Balance',
