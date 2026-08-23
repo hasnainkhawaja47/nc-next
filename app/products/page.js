@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import ProductsTable from './ProductsTable'
-
+import { Package } from 'lucide-react'
 export default async function ProductsPage() {
   const supabase = await createClient()
 
@@ -11,10 +11,10 @@ export default async function ProductsPage() {
   ])
 
   const soldMap = {}
-  ;(soldRows || []).forEach((r) => { soldMap[r.product_id] = r.units_sold || 0 })
+    ; (soldRows || []).forEach((r) => { soldMap[r.product_id] = r.units_sold || 0 })
 
   const soldYtdMap = {}
-  ;(soldYtdRows || []).forEach((r) => { soldYtdMap[r.product_id] = r.units_sold_ytd || 0 })
+    ; (soldYtdRows || []).forEach((r) => { soldYtdMap[r.product_id] = r.units_sold_ytd || 0 })
 
   const enriched = (products || []).map((p) => ({
     ...p,
@@ -26,8 +26,10 @@ export default async function ProductsPage() {
   return (
     <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl sm:text-2xl font-semibold">Products</h1>
-      </div>
+        <h1 className="text-xl sm:text-2xl font-semibold mb-4 flex items-center gap-2">
+          <Package className="w-5 h-5 text-muted-foreground" />
+          Products
+        </h1>      </div>
       <ProductsTable initialProducts={enriched} />
     </div>
   )

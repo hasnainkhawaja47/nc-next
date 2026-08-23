@@ -1,8 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { addProduct, updateProduct, deleteProduct } from './actions'
 import DataTable from '@/components/DataTable'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
 
 export default function ProductsTable({ initialProducts }) {
   const [products] = useState(initialProducts)
@@ -34,6 +42,7 @@ export default function ProductsTable({ initialProducts }) {
       return
     }
     setModalOpen(false)
+    toast.success(editing ? 'Product updated' : 'Product added')
     window.location.reload()
   }
 
@@ -41,9 +50,10 @@ export default function ProductsTable({ initialProducts }) {
     if (!confirm('Delete this product?')) return
     const result = await deleteProduct(id)
     if (result.error) {
-      alert(result.error)
+      toast.error(result.error)
       return
     }
+    toast.success('Product deleted')
     window.location.reload()
   }
 
@@ -60,61 +70,57 @@ export default function ProductsTable({ initialProducts }) {
   return (
     <>
       <div className="flex justify-end mb-3">
-        <button
-          onClick={openAdd}
-          className="bg-[#1a1a2e] text-white px-4 py-2 rounded-md text-sm hover:bg-[#2a2a4e]"
-        >
-          + Add product
-        </button>
+        <Button onClick={openAdd}>
+          <Plus className="w-4 h-4 mr-1.5" />
+          Add product
+        </Button>
       </div>
 
       <DataTable
         columns={columns}
         data={products}
         renderActions={(p) => (
-          <>
-            <button onClick={() => openEdit(p)} className="text-blue-600 text-xs mr-3">Edit</button>
-            <button onClick={() => handleDelete(p.id)} className="text-red-600 text-xs">Delete</button>
-          </>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)}>
+              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(p.id)}>
+              <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+            </Button>
+          </div>
         )}
       />
 
-      {modalOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
-          onClick={() => setModalOpen(false)}
-        >
-          <div
-            className="bg-white rounded-lg p-5 w-full max-w-sm"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-semibold mb-3">{editing ? 'Edit product' : 'Add product'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="text-xs text-gray-600">Code</label>
-                <input name="code" defaultValue={editing?.code} required className="w-full border rounded px-2 py-1.5 text-sm" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-600">Name</label>
-                <input name="name" defaultValue={editing?.name} required className="w-full border rounded px-2 py-1.5 text-sm" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-600">Standard price</label>
-                <input name="standard_price" type="number" defaultValue={editing?.standard_price} required className="w-full border rounded px-2 py-1.5 text-sm" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-600">Cost price</label>
-                <input name="cost_price" type="number" defaultValue={editing?.cost_price} required className="w-full border rounded px-2 py-1.5 text-sm" />
-              </div>
-              {error && <p className="text-red-600 text-xs">{error}</p>}
-              <div className="flex gap-2 pt-2">
-                <button type="submit" className="bg-[#1a1a2e] text-white px-3 py-1.5 rounded text-sm flex-1">Save</button>
-                <button type="button" onClick={() => setModalOpen(false)} className="border px-3 py-1.5 rounded text-sm">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit product' : 'Add product'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="code">Code</Label>
+              <Input id="code" name="code" defaultValue={editing?.code} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" name="name" defaultValue={editing?.name} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="standard_price">Standard price</Label>
+              <Input id="standard_price" name="standard_price" type="number" defaultValue={editing?.standard_price} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="cost_price">Cost price</Label>
+              <Input id="cost_price" name="cost_price" type="number" defaultValue={editing?.cost_price} required />
+            </div>
+            {error && <p className="text-red-600 text-xs">{error}</p>}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+              <Button type="submit">Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

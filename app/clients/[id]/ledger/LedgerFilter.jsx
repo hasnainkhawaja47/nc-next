@@ -2,39 +2,87 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Input } from '@/components/ui/input'
+import { format } from 'date-fns'
+import { CalendarIcon, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+
+function toISODate(date) {
+  if (!date) return ''
+  return format(date, 'yyyy-MM-dd')
+}
+
+function fromISODate(str) {
+  if (!str) return undefined
+  const [y, m, d] = str.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
 
 export default function LedgerFilter({ firmId, defaultFrom, defaultTo }) {
-  const [from, setFrom] = useState(defaultFrom)
-  const [to, setTo] = useState(defaultTo)
+  const [from, setFrom] = useState(fromISODate(defaultFrom))
+  const [to, setTo] = useState(fromISODate(defaultTo))
   const router = useRouter()
 
   function applyFilter() {
     const params = new URLSearchParams()
-    if (from) params.set('from', from)
-    if (to) params.set('to', to)
+    if (from) params.set('from', toISODate(from))
+    if (to) params.set('to', toISODate(to))
     router.push(`/clients/${firmId}/ledger?${params.toString()}`)
   }
 
   function clearFilter() {
-    setFrom('2024-01-01')
-    setTo('')
+    setFrom(fromISODate('2024-01-01'))
+    setTo(undefined)
     router.push(`/clients/${firmId}/ledger?from=2024-01-01`)
   }
 
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div className="space-y-1.5">
-        <label className="text-xs text-gray-600">From</label>
-        <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        <label className="text-xs text-muted-foreground">From</label>
+        <Popover>
+          <PopoverTrigger
+            render={
+              <Button variant="outline" className="w-[180px] justify-start font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {from ? format(from, 'PP') : 'Pick a date'}
+              </Button>
+            }
+          />
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={from} onSelect={setFrom} />
+          </PopoverContent>
+        </Popover>
       </div>
+
       <div className="space-y-1.5">
-        <label className="text-xs text-gray-600">To</label>
-        <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        <label className="text-xs text-muted-foreground">To</label>
+        <Popover>
+          <PopoverTrigger
+            render={
+              <Button variant="outline" className="w-[180px] justify-start font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {to ? format(to, 'PP') : 'Pick a date'}
+              </Button>
+            }
+          />
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={to} onSelect={setTo} />
+          </PopoverContent>
+        </Popover>
       </div>
-      <Button onClick={applyFilter}>Filter</Button>
-      <Button variant="outline" onClick={clearFilter}>Clear</Button>
+
+      <div className="flex gap-2">
+        <Button onClick={applyFilter}>
+          <Search className="w-4 h-4 mr-1.5" />
+          Filter
+        </Button>
+        <Button variant="outline" onClick={clearFilter}>
+          <X className="w-4 h-4 mr-1.5" />
+          Clear
+        </Button>
+      </div>
     </div>
   )
 }

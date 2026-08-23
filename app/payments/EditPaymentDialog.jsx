@@ -7,8 +7,9 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { updatePayment, getPayment } from './actions'
+import { Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export default function EditPaymentDialog({ paymentId, label = 'Edit' }) {
     const [open, setOpen] = useState(false)
@@ -48,7 +49,13 @@ export default function EditPaymentDialog({ paymentId, label = 'Edit' }) {
 
     return (
         <Dialog open={open} onOpenChange={handleOpen}>
-            <DialogTrigger className="text-blue-600 text-xs">{label}</DialogTrigger>
+            <DialogTrigger
+                render={
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                    </Button>
+                }
+            />
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Edit payment</DialogTitle>

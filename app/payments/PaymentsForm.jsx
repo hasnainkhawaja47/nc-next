@@ -2,6 +2,9 @@
 
 import { useState, useRef } from 'react'
 import { addPayment } from './actions'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 
 export default function PaymentsForm({ firms }) {
   const [query, setQuery] = useState('')
@@ -55,12 +58,11 @@ export default function PaymentsForm({ firms }) {
   }
 
   return (
-    <div className="border rounded-lg p-4 max-w-md">
+    <div className="border rounded-lg p-4 max-w-md animate-in fade-in duration-300">
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
-        <div className="relative">
-          <label className="text-xs text-gray-600">Client name</label>
-          <input
-            type="text"
+        <div className="relative space-y-1.5">
+          <Label>Client name</Label>
+          <Input
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
@@ -70,15 +72,14 @@ export default function PaymentsForm({ firms }) {
             onFocus={() => setShowDropdown(true)}
             placeholder="Type to search..."
             autoComplete="off"
-            className="w-full border rounded px-2 py-1.5 text-sm"
           />
           {showDropdown && filtered.length > 0 && (
-            <div className="absolute z-20 bg-white border rounded shadow-md w-full mt-1 max-h-48 overflow-auto">
+            <div className="absolute z-20 bg-background border rounded-md shadow-md w-full mt-1 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1">
               {filtered.map((f) => (
                 <div
                   key={f.id}
                   onClick={() => selectFirm(f)}
-                  className="px-3 py-1.5 text-sm hover:bg-gray-100 cursor-pointer"
+                  className="px-3 py-1.5 text-sm hover:bg-muted cursor-pointer transition-colors"
                 >
                   {f.name}
                 </div>
@@ -87,23 +88,23 @@ export default function PaymentsForm({ firms }) {
           )}
         </div>
 
-        <div>
-          <label className="text-xs text-gray-600">Date</label>
-          <input name="payment_date" type="date" required className="w-full border rounded px-2 py-1.5 text-sm" />
+        <div className="space-y-1.5">
+          <Label>Date</Label>
+          <Input name="payment_date" type="date" required />
         </div>
 
-        <div>
-          <label className="text-xs text-gray-600">Amount (Rs)</label>
-          <input name="amount" type="number" min="0" required className="w-full border rounded px-2 py-1.5 text-sm" />
+        <div className="space-y-1.5">
+          <Label>Amount (Rs)</Label>
+          <Input name="amount" type="number" min="0" required />
         </div>
 
-        <div>
-          <label className="text-xs text-gray-600">Payment method</label>
+        <div className="space-y-1.5">
+          <Label>Payment method</Label>
           <select
             name="method"
             value={method}
             onChange={(e) => setMethod(e.target.value)}
-            className="w-full border rounded px-2 py-1.5 text-sm"
+            className="w-full h-9 border rounded-md px-3 text-sm bg-background"
           >
             <option>Cash</option>
             <option>Cheque</option>
@@ -113,29 +114,29 @@ export default function PaymentsForm({ firms }) {
         </div>
 
         {method !== 'Cash' && (
-          <>
-            <div>
-              <label className="text-xs text-gray-600">Bank name</label>
-              <input name="bank_name" className="w-full border rounded px-2 py-1.5 text-sm" />
+          <div className="space-y-3 animate-in fade-in slide-in-from-top-1">
+            <div className="space-y-1.5">
+              <Label>Bank name</Label>
+              <Input name="bank_name" />
             </div>
-            <div>
-              <label className="text-xs text-gray-600">Cheque / Reference #</label>
-              <input name="cheque_number" className="w-full border rounded px-2 py-1.5 text-sm" />
+            <div className="space-y-1.5">
+              <Label>Cheque / Reference #</Label>
+              <Input name="cheque_number" />
             </div>
-          </>
+          </div>
         )}
 
-        <div>
-          <label className="text-xs text-gray-600">Memo</label>
-          <input name="memo" placeholder="Optional note" className="w-full border rounded px-2 py-1.5 text-sm" />
+        <div className="space-y-1.5">
+          <Label>Memo</Label>
+          <Input name="memo" placeholder="Optional note" />
         </div>
 
-        {error && <p className="text-red-600 text-xs">{error}</p>}
-        {success && <p className="text-green-600 text-xs">{success}</p>}
+        {error && <p className="text-red-600 text-xs animate-in fade-in slide-in-from-top-1">{error}</p>}
+        {success && <p className="text-green-600 text-xs animate-in fade-in slide-in-from-top-1">{success}</p>}
 
-        <button type="submit" className="bg-[#1a1a2e] text-white px-4 py-2 rounded text-sm w-full">
+        <Button type="submit" className="w-full">
           Save payment
-        </button>
+        </Button>
       </form>
     </div>
   )

@@ -1,9 +1,18 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { toast } from 'sonner'
 import { addClient, updateClient, deleteClient } from './actions'
 import DataTable from '@/components/DataTable'
-import Link from 'next/link'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react'
+
 export default function ClientsTable({ initialClients }) {
   const [clients] = useState(initialClients)
   const [modalOpen, setModalOpen] = useState(false)
@@ -34,6 +43,7 @@ export default function ClientsTable({ initialClients }) {
       return
     }
     setModalOpen(false)
+    toast.success(editing ? 'Client updated' : 'Client added')
     window.location.reload()
   }
 
@@ -41,9 +51,10 @@ export default function ClientsTable({ initialClients }) {
     if (!confirm('Delete this client?')) return
     const result = await deleteClient(id)
     if (result.error) {
-      alert(result.error)
+      toast.error(result.error)
       return
     }
+    toast.success('Client deleted')
     window.location.reload()
   }
 
@@ -52,11 +63,11 @@ export default function ClientsTable({ initialClients }) {
       key: 'name',
       header: 'Name',
       render: (c) => (
-        <Link href={`/clients/${c.id}/ledger`} className="text-blue-600 hover:underline">
+        <Link href={`/clients/${c.id}/ledger`} className="hover:underline transition-colors">
           {c.name}
         </Link>
       ),
-    }, ,
+    },
     {
       key: 'balance',
       header: 'Balance',
@@ -71,49 +82,55 @@ export default function ClientsTable({ initialClients }) {
   return (
     <>
       <div className="flex justify-end mb-3">
-        <button
-          onClick={openAdd}
-          className="bg-[#1a1a2e] text-white px-4 py-2 rounded-md text-sm hover:bg-[#2a2a4e]"
-        >
-          + Add client
-        </button>
+        <Button onClick={openAdd} className="transition-transform active:scale-95">
+          <Plus className="w-4 h-4 mr-1.5" />
+          Add client
+        </Button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={clients}
-        renderActions={(c) => (
-          <>
-            <button onClick={() => openEdit(c)} className="text-blue-600 text-xs mr-3">Edit</button>
-            <button onClick={() => handleDelete(c.id)} className="text-red-600 text-xs">Delete</button>
-          </>
-        )}
-      />
+      <div className="animate-in fade-in duration-300">
+        <DataTable
+          columns={columns}
+          data={clients}
+          renderActions={(c) => (
+            <div className="flex gap-1">
+              <Link
+                href={`/clients/${c.id}/ledger`}
+                className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+              </Link>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}>
+                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(c.id)}>
+                <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
+              </Button>
+            </div>
+          )}
+        />
+      </div>
 
-      {modalOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
-          onClick={() => setModalOpen(false)}
-        >
-          <div
-            className="bg-white rounded-lg p-5 w-full max-w-sm"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-semibold mb-3">{editing ? 'Edit client' : 'Add client'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="text-xs text-gray-600">Name</label>
-                <input name="name" defaultValue={editing?.name} required className="w-full border rounded px-2 py-1.5 text-sm" />
-              </div>
-              {error && <p className="text-red-600 text-xs">{error}</p>}
-              <div className="flex gap-2 pt-2">
-                <button type="submit" className="bg-[#1a1a2e] text-white px-3 py-1.5 rounded text-sm flex-1">Save</button>
-                <button type="button" onClick={() => setModalOpen(false)} className="border px-3 py-1.5 rounded text-sm">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="animate-in fade-in zoom-in-95 duration-200">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit client' : 'Add client'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" name="name" defaultValue={editing?.name} required autoFocus />
+            </div>
+            {error && (
+              <p className="text-red-600 text-xs animate-in fade-in slide-in-from-top-1">{error}</p>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+              <Button type="submit">Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

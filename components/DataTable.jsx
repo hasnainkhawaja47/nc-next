@@ -1,30 +1,42 @@
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from '@/components/ui/table'
+
 export default function DataTable({ columns, data, keyField = 'id', renderActions }) {
   return (
     <div className="border rounded-lg overflow-auto max-h-[70vh]">
-      <table className="w-full text-sm border-collapse min-w-[600px]">
-        <thead className="sticky top-0 bg-gray-50 z-10">
-          <tr className="text-left border-b">
+      <Table className="min-w-[600px]">
+        <TableHeader className="bg-muted">
+          <TableRow>
             {columns.map((col) => (
-              <th key={col.key} className="py-2 px-3 bg-gray-50">{col.header}</th>
+              <TableHead key={col.key} className="sticky top-0 z-10 bg-muted">{col.header}</TableHead>
             ))}
-            {renderActions && <th className="py-2 px-3 bg-gray-50"></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((row) => (
-            <tr key={row[keyField]} className="border-b hover:bg-gray-50">
-              {columns.map((col) => (
-                <td key={col.key} className="py-2 px-3">
-                  {col.render ? col.render(row) : row[col.key]}
-                </td>
-              ))}
-              {renderActions && (
-                <td className="py-2 px-3 whitespace-nowrap">{renderActions(row)}</td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            {renderActions && <TableHead className="sticky top-0 z-10 bg-muted"></TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={columns.length + (renderActions ? 1 : 0)} className="text-center text-muted-foreground py-6">
+                No records found.
+              </TableCell>
+            </TableRow>
+          ) : (
+            data.map((row) => (
+              <TableRow key={row[keyField]} className="transition-colors hover:bg-muted/50">
+                {columns.map((col) => (
+                  <TableCell key={col.key}>
+                    {col.render ? col.render(row) : row[col.key]}
+                  </TableCell>
+                ))}
+                {renderActions && (
+                  <TableCell className="whitespace-nowrap">{renderActions(row)}</TableCell>
+                )}
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   )
 }

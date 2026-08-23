@@ -3,6 +3,7 @@ import PaymentsForm from './PaymentsForm'
 import DataTable from '@/components/DataTable'
 import DeletePaymentButton from './DeletePaymentButton'
 import EditPaymentDialog from './EditPaymentDialog'
+import { Wallet } from 'lucide-react'
 
 export default async function PaymentsPage() {
   const supabase = await createClient()
@@ -26,7 +27,10 @@ export default async function PaymentsPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <h1 className="text-xl sm:text-2xl font-semibold mb-4">Payments</h1>
+      <h1 className="text-xl sm:text-2xl font-semibold mb-4 flex items-center gap-2">
+        <Wallet className="w-5 h-5 text-muted-foreground" />
+        Payments
+      </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PaymentsForm firms={firms || []} />
@@ -37,8 +41,8 @@ export default async function PaymentsPage() {
             columns={columns}
             data={payments || []}
             renderActions={(p) => (
-              <div className="flex gap-2">
-                <EditPaymentDialog paymentId={p.id} trigger={<span className="text-blue-600 text-xs cursor-pointer">Edit</span>} />
+              <div className="flex gap-1">
+                <EditPaymentDialog paymentId={p.id} />
                 <DeletePaymentButton id={p.id} />
               </div>
             )}

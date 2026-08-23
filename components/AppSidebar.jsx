@@ -51,11 +51,9 @@ export default function AppSidebar() {
                                 const Icon = link.icon
                                 return (
                                     <SidebarMenuItem key={link.href}>
-                                        <SidebarMenuButton asChild isActive={pathname === link.href}>
-                                            <Link href={link.href}>
-                                                <Icon />
-                                                <span>{link.label}</span>
-                                            </Link>
+                                        <SidebarMenuButton render={<Link href={link.href} />} isActive={pathname === link.href}>
+                                            <Icon />
+                                            <span>{link.label}</span>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 )
