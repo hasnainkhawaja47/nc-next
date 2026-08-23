@@ -1,5 +1,4 @@
 'use client'
-import { showBillSavedToast } from './billSavedToast'
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
@@ -13,8 +12,9 @@ import { Card } from '@/components/ui/card'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table'
-import { saveBill, getPreviousBalance } from './actions'
-
+import { useRouter } from 'next/navigation'
+import { saveBill, updateBill, getPreviousBalance } from './actions'
+import { useActivity } from '@/lib/activity-context'
 
 const toWords = new ToWords({ localeCode: 'en-IN' })
 
@@ -148,26 +148,42 @@ function ItemRow({ index, register, watch, setValue, products, onSelectProduct, 
   )
 }
 
-export default function NewBillForm({ firms, products }) {
+export default function NewBillForm({ firms, products, initialBill }) {
+  const router = useRouter()
+  const editingBillId = initialBill?.bill?.id || null
   const [clientQuery, setClientQuery] = useState('')
   const [showClientDropdown, setShowClientDropdown] = useState(false)
   const [prevBalance, setPrevBalance] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const clientInputRef = useRef(null)
   const lastAppendedLength = useRef(0)
+  const { addActivity } = useActivity()
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    watch,
-    setValue,
-    reset,
-    formState: { errors, isSubmitting, isValid },
-  } = useForm({
-    resolver: zodResolver(schema),
-    mode: 'onChange',
-    defaultValues: {
+  function buildDefaults() {
+    if (initialBill?.bill) {
+      const firm = firms.find((f) => f.id === initialBill.bill.firm_id)
+      return {
+        firm_id: initialBill.bill.firm_id,
+        bill_date: initialBill.bill.bill_date,
+        bilty_no: initialBill.bill.bilty_no || '',
+        do_no: initialBill.bill.do_no || '',
+        bilty_charges: initialBill.bill.bilty_charges || 0,
+        packaging_charges: initialBill.bill.packaging_charges || 0,
+        is_credit: initialBill.bill.is_credit,
+        items: [
+          ...initialBill.items.map((i) => ({
+            product_name: i.product_name,
+            colour: i.colour || '',
+            size: i.size || '',
+            quantity: i.quantity,
+            price: i.price,
+            product_id: i.product_id,
+          })),
+          emptyRow,
+        ],
+      }
+    }
+    return {
       firm_id: null,
       bill_date: new Date().toISOString().split('T')[0],
       bilty_no: '',
@@ -176,8 +192,20 @@ export default function NewBillForm({ firms, products }) {
       packaging_charges: 0,
       is_credit: true,
       items: [emptyRow, emptyRow],
-    },
-  })
+    }
+  }
+
+  const { register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting, isValid } } = useForm({
+      resolver: zodResolver(schema),
+      mode: 'onChange',
+      defaultValues: buildDefaults(),
+    })
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
   const watchedItems = watch('items')
@@ -192,6 +220,19 @@ export default function NewBillForm({ firms, products }) {
       append(emptyRow)
     }
   }, [watchedItems, append])
+
+  useEffect(() => {
+    if (initialBill?.bill) {
+      const firm = firms.find((f) => f.id === initialBill.bill.firm_id)
+      if (firm) {
+        setClientQuery(firm.name)
+        getPreviousBalance(firm.id).then((bal) => {
+          setPrevBalance(bal - initialBill.bill.total_amount)
+        })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const itemsTotal = watchedItems.reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.price) || 0), 0)
   const grandTotal = itemsTotal + Number(watchedBilty) + Number(watchedPkg)
@@ -240,7 +281,9 @@ export default function NewBillForm({ firms, products }) {
       .filter((i) => i.product_name?.trim() && i.quantity > 0 && i.price > 0)
       .map((i) => ({ ...i, quantity: Number(i.quantity), price: Number(i.price) }))
 
-    const result = await saveBill({ ...data, items: cleanItems })
+    const result = editingBillId
+      ? await updateBill(editingBillId, { ...data, items: cleanItems })
+      : await saveBill({ ...data, items: cleanItems })
 
     if (result.error) {
       toast.error(result.error)
@@ -249,15 +292,25 @@ export default function NewBillForm({ firms, products }) {
 
     const firm = firms.find((f) => f.id === data.firm_id)
 
-    showBillSavedToast({
-      bill: result.bill,
+    if (editingBillId) {
+      toast.success(`Bill #${result.bill.id} updated`)
+      router.push('/new-bill')
+      return
+    }
+    const hasAnomaly = result.anomalies && result.anomalies.length > 0
+    toast.success(hasAnomaly ? `Bill #${result.bill.id} saved — ${result.anomalies[0].type} detected` : `Bill #${result.bill.id} saved`)
+
+    addActivity({
+      billId: result.bill.id,
+      firmId: data.firm_id,
       firmName: firm?.name || '',
+      amount: result.bill.total_amount,
+      date: result.bill.bill_date,
+      bill: result.bill,
       items: result.items,
       amountWords: toWords.convert(result.bill.total_amount, { currency: true }),
       prevBalance: prevBalance || 0,
-      onStartNew: startNewBill,
     })
-    // form intentionally stays populated until "Start new bill" is clicked in the toast
   }
   const onInvalid = () => setSubmitted(true)
 
@@ -382,7 +435,7 @@ export default function NewBillForm({ firms, products }) {
           )}
 
           <Button type="submit" disabled={!isValid || isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Save bill'}
+            {isSubmitting ? 'Saving...' : editingBillId ? 'Update bill' : 'Save bill'}
           </Button>
         </form>
       </Card>

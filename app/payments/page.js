@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import PaymentsForm from './PaymentsForm'
 import DataTable from '@/components/DataTable'
 import DeletePaymentButton from './DeletePaymentButton'
+import EditPaymentDialog from './EditPaymentDialog'
 
 export default async function PaymentsPage() {
   const supabase = await createClient()
@@ -35,7 +36,12 @@ export default async function PaymentsPage() {
           <DataTable
             columns={columns}
             data={payments || []}
-            renderActions={(p) => <DeletePaymentButton id={p.id} />}
+            renderActions={(p) => (
+              <div className="flex gap-2">
+                <EditPaymentDialog paymentId={p.id} trigger={<span className="text-blue-600 text-xs cursor-pointer">Edit</span>} />
+                <DeletePaymentButton id={p.id} />
+              </div>
+            )}
           />
         </div>
       </div>

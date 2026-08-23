@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { getLedger } from './actions'
 import LedgerFilter from './LedgerFilter'
+import Link from 'next/link'
+import DeleteEntryButton from './DeleteEntryButton'
+import EditPaymentDialog from '@/app/payments/EditPaymentDialog'
 
 export default async function LedgerPage({ params, searchParams }) {
   const { id } = await params
@@ -44,11 +47,12 @@ export default async function LedgerPage({ params, searchParams }) {
               <th className="py-2 px-3 bg-gray-50 text-right">Credit</th>
               <th className="py-2 px-3 bg-gray-50 text-right">Debit</th>
               <th className="py-2 px-3 bg-gray-50 text-right">Balance</th>
+              <th className="py-2 px-3 bg-gray-50"></th>
             </tr>
           </thead>
           <tbody>
             {ledger.entries.length === 0 ? (
-              <tr><td colSpan={5} className="py-6 text-center text-gray-400">No entries found for this date range.</td></tr>
+              <tr><td colSpan={6} className="py-6 text-center text-gray-400">No entries found for this date range.</td></tr>
             ) : (
               ledger.entries.map((e, i) => (
                 <tr key={i} className={`border-b ${e.type === 'opening' ? 'bg-gray-50 italic text-gray-500' : ''}`}>
@@ -65,6 +69,25 @@ export default async function LedgerPage({ params, searchParams }) {
                   <td className="py-2 px-3 text-right text-gray-500">{e.type === 'opening' ? '—' : e.debit > 0 ? e.debit.toLocaleString() : '—'}</td>
                   <td className={`py-2 px-3 text-right font-medium ${e.type === 'opening' ? (e.openingBalance > 0 ? 'text-red-600' : 'text-green-600') : (e.balance > 0 ? 'text-red-600' : e.balance < 0 ? 'text-green-600' : '')}`}>
                     {(e.type === 'opening' ? e.openingBalance : e.balance).toLocaleString()}
+                  </td>
+                  <td className="py-2 px-3 whitespace-nowrap">
+                    {e.type !== 'opening' && e.isActive && (
+                      <div className="flex gap-2">
+                        {e.type !== 'opening' && e.isActive && (
+                          <div className="flex gap-2">
+                            {e.type === 'bill' ? (
+                              <Link href={`/new-bill?edit=${e.id}`} className="text-blue-600 text-xs">Edit</Link>
+                            ) : (
+                              <EditPaymentDialog paymentId={e.id} trigger={<span className="text-blue-600 text-xs cursor-pointer">Edit</span>} />
+                            )}
+                          </div>
+                        )}
+                        <DeleteEntryButton type={e.type} id={e.id} />
+                      </div>
+                    )}
+                    {e.type !== 'opening' && !e.isActive && (
+                      <span className="text-[10px] text-gray-400">archive</span>
+                    )}
                   </td>
                 </tr>
               ))

@@ -90,3 +90,61 @@ export async function getPreviousBalance(firmId) {
   const row = (balanceRows && balanceRows[0]) || {}
   return (row.billed || 0) - (row.paid || 0)
 }
+
+export async function getBillForEdit(id) {
+  const supabase = await createClient()
+  const { data: bill } = await supabase.from('bills').select('*').eq('id', id).single()
+  const { data: items } = await supabase.from('bill_items').select('*').eq('bill_id', id)
+  return { bill, items: items || [] }
+}
+
+export async function updateBill(id, data) {
+  const supabase = await createClient()
+
+  const { firm_id, bill_date, bilty_no, do_no, bilty_charges, packaging_charges, is_credit, items } = data
+  const itemsTotal = items.reduce((s, i) => s + i.quantity * i.price, 0)
+  const total_amount = itemsTotal + (bilty_charges || 0) + (packaging_charges || 0)
+
+  const { data: updated, error } = await supabase
+    .from('bills')
+    .update({
+      firm_id,
+      bill_date,
+      bilty_no: bilty_no || '',
+      do_no: do_no || '',
+      bilty_charges: bilty_charges || 0,
+      packaging_charges: packaging_charges || 0,
+      total_amount,
+      is_credit,
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) return { error: error.message }
+
+  await supabase.from('bill_items').delete().eq('bill_id', id)
+
+  const billItems = items.map((item) => ({
+    bill_id: id,
+    product_id: item.product_id || null,
+    product_name: item.product_name,
+    colour: item.colour || '',
+    size: item.size || '',
+    quantity: item.quantity,
+    price: item.price,
+    total: item.quantity * item.price,
+  }))
+  await supabase.from('bill_items').insert(billItems)
+
+  revalidatePath('/new-bill')
+  return { success: true, bill: { ...updated, total_amount }, items: billItems }
+}
+
+export async function deleteBill(id) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('bills').delete().eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/new-bill')
+  return { success: true }
+}

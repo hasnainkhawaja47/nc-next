@@ -54,3 +54,25 @@ export async function deletePayment(id) {
   revalidatePath('/payments')
   return { success: true }
 }
+
+export async function updatePayment(id, formData) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('payments').update({
+    payment_date: formData.get('payment_date'),
+    amount: Number(formData.get('amount')),
+    method: formData.get('method') || 'Cash',
+    bank_name: formData.get('bank_name') || '',
+    cheque_number: formData.get('cheque_number') || '',
+    memo: formData.get('memo') || '',
+  }).eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/payments')
+  return { success: true }
+}
+
+export async function getPayment(id) {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('payments').select('*').eq('id', id).single()
+  if (error) return { error: error.message }
+  return { payment: data }
+}
