@@ -3,6 +3,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+
+export async function getFirmBalance(firmId) {
+  const supabase = await createClient()
+  const { data: balanceRows } = await supabase.rpc('get_firm_balance', { p_firm_id: firmId })
+  const row = (balanceRows && balanceRows[0]) || {}
+  return (row.billed || 0) - (row.paid || 0)
+}
+
 export async function addPayment(formData) {
   const supabase = await createClient()
 

@@ -1,4 +1,5 @@
 'use client'
+
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useForm, useFieldArray } from 'react-hook-form'
@@ -6,13 +7,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ToWords } from 'to-words'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import {
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-} from '@/components/ui/table'
-import { useRouter } from 'next/navigation'
+import { Badge } from '@/components/ui/badge'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { X } from 'lucide-react'
 import { saveBill, updateBill, getPreviousBalance } from './actions'
 import { useActivity } from '@/lib/activity-context'
 
@@ -71,7 +73,7 @@ function ProductDropdown({ anchorRef, matches, onSelect, show }) {
   return createPortal(
     <div
       style={{ position: 'absolute', top: coords.top, left: coords.left, width: coords.width, zIndex: 1000 }}
-      className="bg-white border rounded-md shadow-md max-h-48 overflow-auto"
+      className="bg-background border rounded-md shadow-md max-h-48 overflow-auto"
     >
       {matches.map((p) => (
         <div
@@ -80,14 +82,25 @@ function ProductDropdown({ anchorRef, matches, onSelect, show }) {
             e.preventDefault()
             onSelect(p)
           }}
-          className="px-3 py-1.5 text-sm hover:bg-gray-100 cursor-pointer flex justify-between"
+          className="px-3 py-1.5 text-sm hover:bg-muted cursor-pointer flex justify-between transition-colors"
         >
           <span><strong>{p.code}</strong> — {p.name}</span>
-          <span className="text-gray-400">Rs {p.standard_price}</span>
+          <span className="text-muted-foreground">Rs {p.standard_price}</span>
         </div>
       ))}
     </div>,
     document.body
+  )
+}
+
+// Quiet, borderless-until-focus cell input for the line-items table
+function Cell({ className = '', numeric = false, ...props }) {
+  return (
+    <input
+      {...props}
+      className={`w-full bg-transparent border border-transparent rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-muted focus:outline-none focus:bg-background focus:border-ring ${numeric ? 'text-right tabular-nums font-mono' : ''
+        } ${className}`}
+    />
   )
 }
 
@@ -98,6 +111,7 @@ function ItemRow({ index, register, watch, setValue, products, onSelectProduct, 
 
   const quantity = Number(watch(`items.${index}.quantity`)) || 0
   const price = Number(watch(`items.${index}.price`)) || 0
+  const total = quantity * price
 
   const matches =
     query.length > 0
@@ -107,10 +121,10 @@ function ItemRow({ index, register, watch, setValue, products, onSelectProduct, 
   const { ref: rhfRef, onChange: rhfOnChange, ...rest } = register(`items.${index}.product_name`)
 
   return (
-    <TableRow>
-      <TableCell className="text-gray-400 text-xs w-6">{index + 1}</TableCell>
-      <TableCell className="relative">
-        <Input
+    <tr className="border-b last:border-b-0">
+      <td className="w-9 text-center text-xs text-muted-foreground font-mono">{index + 1}</td>
+      <td className="relative">
+        <Cell
           {...rest}
           ref={(el) => { rhfRef(el); inputRef.current = el }}
           onChange={(e) => {
@@ -133,35 +147,45 @@ function ItemRow({ index, register, watch, setValue, products, onSelectProduct, 
             setShowDropdown(false)
           }}
         />
-      </TableCell>
-      <TableCell className="w-24"><Input {...register(`items.${index}.colour`)} /></TableCell>
-      <TableCell className="w-20"><Input {...register(`items.${index}.size`)} /></TableCell>
-      <TableCell className="w-20"><Input type="number" {...register(`items.${index}.quantity`, { valueAsNumber: true })} /></TableCell>
-      <TableCell className="w-24"><Input type="number" {...register(`items.${index}.price`, { valueAsNumber: true })} /></TableCell>
-      <TableCell className="w-24 text-sm font-medium">{quantity * price > 0 ? (quantity * price).toLocaleString() : '—'}</TableCell>
-      <TableCell className="w-8">
+      </td>
+      <td className="w-24"><Cell {...register(`items.${index}.colour`)} /></td>
+      <td className="w-20"><Cell {...register(`items.${index}.size`)} /></td>
+      <td className="w-20"><Cell numeric type="number" {...register(`items.${index}.quantity`, { valueAsNumber: true })} placeholder="0" /></td>
+      <td className="w-24"><Cell numeric type="number" {...register(`items.${index}.price`, { valueAsNumber: true })} placeholder="0" /></td>
+      <td className="w-28 text-right pr-2.5">
+        <span className={`text-sm font-mono tabular-nums ${total > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+          {total > 0 ? total.toLocaleString() : '—'}
+        </span>
+      </td>
+      <td className="w-9 text-center">
         {canRemove && (
-          <button type="button" onClick={() => onRemove(index)} className="text-red-600 text-xs">✕</button>
+          <button
+            type="button"
+            onClick={() => onRemove(index)}
+            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         )}
-      </TableCell>
-    </TableRow>
+      </td>
+    </tr>
   )
 }
 
 export default function NewBillForm({ firms, products, initialBill }) {
   const router = useRouter()
+  const { addActivity } = useActivity()
   const editingBillId = initialBill?.bill?.id || null
+
   const [clientQuery, setClientQuery] = useState('')
   const [showClientDropdown, setShowClientDropdown] = useState(false)
   const [prevBalance, setPrevBalance] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const clientInputRef = useRef(null)
   const lastAppendedLength = useRef(0)
-  const { addActivity } = useActivity()
 
   function buildDefaults() {
     if (initialBill?.bill) {
-      const firm = firms.find((f) => f.id === initialBill.bill.firm_id)
       return {
         firm_id: initialBill.bill.firm_id,
         bill_date: initialBill.bill.bill_date,
@@ -195,24 +219,26 @@ export default function NewBillForm({ firms, products, initialBill }) {
     }
   }
 
-  const { register,
+  const {
+    register,
     handleSubmit,
     control,
     watch,
     setValue,
     reset,
-    formState: { errors, isSubmitting, isValid } } = useForm({
-      resolver: zodResolver(schema),
-      mode: 'onChange',
-      defaultValues: buildDefaults(),
-    })
+    formState: { errors, isSubmitting, isValid },
+  } = useForm({
+    resolver: zodResolver(schema),
+    mode: 'onChange',
+    defaultValues: buildDefaults(),
+  })
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
   const watchedItems = watch('items')
   const watchedBilty = watch('bilty_charges') || 0
   const watchedPkg = watch('packaging_charges') || 0
+  const watchedIsCredit = watch('is_credit')
 
-  // Auto-append a new row once the last row starts getting filled in
   useEffect(() => {
     const last = watchedItems[watchedItems.length - 1]
     if (last?.product_name?.trim() && lastAppendedLength.current !== watchedItems.length) {
@@ -297,6 +323,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
       router.push('/new-bill')
       return
     }
+
     const hasAnomaly = result.anomalies && result.anomalies.length > 0
     toast.success(hasAnomaly ? `Bill #${result.bill.id} saved — ${result.anomalies[0].type} detected` : `Bill #${result.bill.id} saved`)
 
@@ -312,15 +339,25 @@ export default function NewBillForm({ firms, products, initialBill }) {
       prevBalance: prevBalance || 0,
     })
   }
+
   const onInvalid = () => setSubmitted(true)
 
   return (
     <div className="max-w-4xl">
-      <Card className="p-4 space-y-4">
-        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <Card className="p-0 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b">
+          <h1 className="text-xl font-semibold tracking-tight">New Bill</h1>
+          {editingBillId ? (
+            <Badge variant="secondary" className="font-mono">Bill #{editingBillId}</Badge>
+          ) : (
+            <Badge variant="outline" className="text-muted-foreground">Unsaved</Badge>
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="px-6 py-5 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
             <div className="relative space-y-1.5">
-              <label className="text-sm font-medium">Client name</label>
+              <Label className="text-xs text-muted-foreground">Client name</Label>
               <Input
                 ref={clientInputRef}
                 value={clientQuery}
@@ -336,12 +373,12 @@ export default function NewBillForm({ firms, products, initialBill }) {
                 autoComplete="off"
               />
               {showClientDropdown && filteredFirms.length > 0 && (
-                <div className="absolute z-20 bg-white border rounded-md shadow-md w-full mt-1 max-h-48 overflow-auto">
+                <div className="absolute z-20 bg-background border rounded-md shadow-md w-full mt-1 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1">
                   {filteredFirms.map((f) => (
                     <div
                       key={f.id}
                       onMouseDown={(e) => { e.preventDefault(); selectFirm(f) }}
-                      className="px-3 py-1.5 text-sm hover:bg-gray-100 cursor-pointer"
+                      className="px-3 py-1.5 text-sm hover:bg-muted cursor-pointer transition-colors"
                     >
                       {f.name}
                     </div>
@@ -352,51 +389,64 @@ export default function NewBillForm({ firms, products, initialBill }) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Date</label>
+              <Label className="text-xs text-muted-foreground">Date</Label>
               <Input type="date" {...register('bill_date')} />
-              {submitted && errors.bill_date && <p className="text-red-600 text-xs">{errors.bill_date.message}</p>}
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Bilty #</label>
+              <Label className="text-xs text-muted-foreground">Bilty #</Label>
               <Input {...register('bilty_no')} />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">D/O #</label>
+              <Label className="text-xs text-muted-foreground">D/O #</Label>
               <Input {...register('do_no')} />
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button type="button" variant={!watch('is_credit') ? 'default' : 'outline'} onClick={() => setValue('is_credit', false)}>Cash</Button>
-            <Button type="button" variant={watch('is_credit') ? 'default' : 'outline'} onClick={() => setValue('is_credit', true)}>Credit</Button>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Payment</Label>
+            <ToggleGroup
+              type="single"
+              value={[watchedIsCredit ? 'credit' : 'cash']}
+              onValueChange={(val) => {
+                if (val.length > 0) setValue('is_credit', val[0] === 'credit')
+              }}
+              className="inline-flex bg-muted rounded-lg p-1 gap-1 w-fit"
+            >
+              <ToggleGroupItem value="cash" className="rounded-md px-5 data-[pressed]:bg-background data-[pressed]:shadow-sm">
+                Cash
+              </ToggleGroupItem>
+              <ToggleGroupItem value="credit" className="rounded-md px-5 data-[pressed]:bg-background data-[pressed]:shadow-sm">
+                Credit
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
 
           {prevBalance != null && (
             <div className="text-sm">
               Previous balance:{' '}
-              <span className={prevBalance > 0 ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+              <span className={`font-medium ${prevBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
                 Rs {prevBalance.toLocaleString()}
               </span>
             </div>
           )}
 
-          <div className="overflow-x-auto border rounded-md">
-            <Table className="min-w-[700px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-6">#</TableHead>
-                  <TableHead>Particular</TableHead>
-                  <TableHead className="w-24">Colour</TableHead>
-                  <TableHead className="w-20">Size</TableHead>
-                  <TableHead className="w-20">Qty</TableHead>
-                  <TableHead className="w-24">Price</TableHead>
-                  <TableHead className="w-24">Total</TableHead>
-                  <TableHead className="w-8"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="border rounded-lg overflow-x-auto">
+            <table className="w-full text-sm min-w-[680px]">
+              <thead>
+                <tr className="border-b bg-muted/40">
+                  <th className="w-9 py-2.5 text-[11px] uppercase tracking-wide text-muted-foreground font-medium"></th>
+                  <th className="py-2.5 pl-2.5 text-left text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Particular</th>
+                  <th className="w-24 py-2.5 text-left text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Colour</th>
+                  <th className="w-20 py-2.5 text-left text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Size</th>
+                  <th className="w-20 py-2.5 text-right text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Qty</th>
+                  <th className="w-24 py-2.5 text-right text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Price</th>
+                  <th className="w-28 py-2.5 pr-2.5 text-right text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Total</th>
+                  <th className="w-9"></th>
+                </tr>
+              </thead>
+              <tbody>
                 {fields.map((field, index) => (
                   <ItemRow
                     key={field.id}
@@ -410,36 +460,45 @@ export default function NewBillForm({ firms, products, initialBill }) {
                     canRemove={fields.length > 1}
                   />
                 ))}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
           {submitted && errors.items && <p className="text-red-600 text-xs">{errors.items.message}</p>}
 
-          <div className="grid grid-cols-2 gap-3 max-w-xs">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Bilty charges</label>
-              <Input type="number" {...register('bilty_charges', { valueAsNumber: true })} />
+          <div className="border-t pt-5 flex flex-wrap items-end justify-between gap-6">
+            <div className="flex gap-4">
+              <div className="w-32 space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Bilty charges</Label>
+                <Input type="number" className="font-mono tabular-nums" {...register('bilty_charges', { valueAsNumber: true })} />
+              </div>
+              <div className="w-32 space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Packaging</Label>
+                <Input type="number" className="font-mono tabular-nums" {...register('packaging_charges', { valueAsNumber: true })} />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Packaging</label>
-              <Input type="number" {...register('packaging_charges', { valueAsNumber: true })} />
+
+            <div className="flex items-center gap-5 ml-auto">
+              <div className="text-right">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Grand total</div>
+                <div className="font-mono tabular-nums text-2xl font-semibold tracking-tight">
+                  <span className="text-sm text-muted-foreground font-sans mr-1">Rs</span>
+                  {grandTotal.toLocaleString()}
+                </div>
+                {amountWords && <div className="text-[11px] text-muted-foreground mt-0.5">{amountWords}</div>}
+                {newBalance != null && (
+                  <div className="text-xs mt-1">
+                    New balance:{' '}
+                    <span className="text-red-600 font-medium">Rs {newBalance.toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+              <Button type="submit" size="lg" disabled={!isValid || isSubmitting}>
+                {isSubmitting ? 'Saving...' : editingBillId ? 'Update bill' : 'Save bill'}
+              </Button>
             </div>
           </div>
-
-          <div className="text-lg font-semibold">Grand total: Rs {grandTotal.toLocaleString()}</div>
-          {amountWords && <div className="text-xs text-gray-500">{amountWords}</div>}
-          {newBalance != null && (
-            <div className="text-sm">
-              New balance: <span className="text-red-600 font-medium">Rs {newBalance.toLocaleString()}</span>
-            </div>
-          )}
-
-          <Button type="submit" disabled={!isValid || isSubmitting}>
-            {isSubmitting ? 'Saving...' : editingBillId ? 'Update bill' : 'Save bill'}
-          </Button>
         </form>
       </Card>
-
     </div>
   )
 }

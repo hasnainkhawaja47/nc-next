@@ -16,7 +16,7 @@ export default function AppShell({ children }) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <div className="p-2 border-b sm:hidden">
+        <div className="sticky top-0 z-30 flex items-center h-12 px-3 border-b bg-background">
           <SidebarTrigger />
         </div>
         {children}
