@@ -182,8 +182,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
   const [prevBalance, setPrevBalance] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const clientInputRef = useRef(null)
-  const lastAppendedLength = useRef(0)
-
+  const lastRowIdWithContent = useRef(null)
   function buildDefaults() {
     if (initialBill?.bill) {
       return {
@@ -240,12 +239,24 @@ export default function NewBillForm({ firms, products, initialBill }) {
   const watchedIsCredit = watch('is_credit')
 
   useEffect(() => {
-    const last = watchedItems[watchedItems.length - 1]
-    if (last?.product_name?.trim() && lastAppendedLength.current !== watchedItems.length) {
-      lastAppendedLength.current = watchedItems.length + 1
+    const lastIndex = watchedItems.length - 1
+    const lastItem = watchedItems[lastIndex]
+    const lastFieldId = fields[lastIndex]?.id
+
+    console.log('effect ran', {
+      lastIndex,
+      lastItemName: lastItem?.product_name,
+      lastFieldId,
+      lastRowIdWithContent: lastRowIdWithContent.current,
+      fieldsLength: fields.length,
+      itemsLength: watchedItems.length,
+    })
+
+    if (lastItem?.product_name?.trim() && lastFieldId && lastRowIdWithContent.current !== lastFieldId) {
+      lastRowIdWithContent.current = lastFieldId
       append(emptyRow)
     }
-  }, [watchedItems, append])
+  }, [watchedItems, fields, append])
 
   useEffect(() => {
     if (initialBill?.bill) {
@@ -285,7 +296,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
   }
 
   function startNewBill() {
-    lastAppendedLength.current = 0
+    lastRowIdWithContent.current = null
     setSubmitted(false)
     reset({
       firm_id: null,
@@ -338,6 +349,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
       amountWords: toWords.convert(result.bill.total_amount, { currency: true }),
       prevBalance: prevBalance || 0,
     })
+    startNewBill()
   }
 
   const onInvalid = () => setSubmitted(true)
@@ -346,7 +358,9 @@ export default function NewBillForm({ firms, products, initialBill }) {
     <div className="max-w-4xl">
       <Card className="p-0 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-5 border-b">
-          <h1 className="text-xl font-semibold tracking-tight">New Bill</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            {editingBillId ? 'Edit Bill' : 'New Bill'}
+          </h1>
           {editingBillId ? (
             <Badge variant="secondary" className="font-mono">Bill #{editingBillId}</Badge>
           ) : (

@@ -18,7 +18,6 @@ export default async function NewBillPage({ searchParams }) {
 
   return (
     <div className="p-4 sm:p-6">
-      <h1 className="text-xl sm:text-2xl font-semibold mb-4">{initialBill ? `Edit Bill #${sp.edit}` : 'New Bill'}</h1>
       <NewBillForm
         key={sp.edit || 'new'}
         firms={firms || []}

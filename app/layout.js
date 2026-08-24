@@ -18,7 +18,7 @@ export default function RootLayout({ children }) {
             <AppShell>{children}</AppShell>
           </TooltipProvider>
         </ActivityProvider>
-        <Toaster />
+        <Toaster position="top-center" closeButton />
       </body>
     </html>
   )
