@@ -1,0 +1,51 @@
+import React from "react";
+import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { useCountUp } from "./useCountUp";
+
+export default function StatCard({
+  icon: Icon,
+  label,
+  value,
+  formatValue,
+  delta,
+  deltaGood,
+  index = 0,
+}) {
+  const animated = useCountUp(value);
+
+  return (
+    <div
+      className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm opacity-0 animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md"
+      style={{
+        animationDelay: `${index * 80}ms`,
+        animationDuration: "500ms",
+        animationFillMode: "forwards",
+      }}
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-neutral-500">{label}</p>
+          <p className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight text-neutral-900">
+            {formatValue ? formatValue(animated) : animated.toLocaleString()}
+          </p>
+        </div>
+        <div className="rounded-lg bg-neutral-900/5 p-2">
+          <Icon className="h-4 w-4 text-neutral-500" />
+        </div>
+      </div>
+      {delta !== undefined && (
+        <div className="mt-3 flex items-center gap-1 text-xs">
+          {deltaGood ? (
+            <ArrowUpRight className="h-3.5 w-3.5 text-emerald-600" />
+          ) : (
+            <ArrowDownRight className="h-3.5 w-3.5 text-red-500" />
+          )}
+          <span className={deltaGood ? "text-emerald-600" : "text-red-500"}>
+            {delta}
+          </span>
+          <span className="text-neutral-400">vs last month</span>
+        </div>
+      )}
+    </div>
+  );
+}

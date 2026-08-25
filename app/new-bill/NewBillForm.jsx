@@ -17,6 +17,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { X } from 'lucide-react'
 import { saveBill, updateBill, getPreviousBalance } from './actions'
 import { useActivity } from '@/lib/activity-context'
+import { forwardRef } from 'react'
 
 const toWords = new ToWords({ localeCode: 'en-IN' })
 
@@ -54,7 +55,24 @@ const schema = z
     }
   })
 
-const emptyRow = { product_name: '', colour: '', size: '', quantity: 0, price: 0, product_id: null }
+const emptyRow = {
+  product_name: '',
+  colour: '',
+  size: '',
+  quantity: 0,
+  price: 0,
+  product_id: null,
+}
+
+function isRowComplete(row) {
+  return (
+    Boolean(row?.product_name?.trim()) &&
+    Boolean(row?.colour?.trim()) &&
+    Boolean(row?.size?.trim()) &&
+    Number(row?.quantity) > 0 &&
+    Number(row?.price) > 0
+  )
+}
 
 function ProductDropdown({ anchorRef, matches, onSelect, show }) {
   const [coords, setCoords] = useState(null)
@@ -94,21 +112,46 @@ function ProductDropdown({ anchorRef, matches, onSelect, show }) {
 }
 
 // Quiet, borderless-until-focus cell input for the line-items table
-function Cell({ className = '', numeric = false, ...props }) {
+const Cell = forwardRef(function Cell({ className = '', numeric = false, ...props }, ref) {
   return (
     <input
+      ref={ref}
       {...props}
       className={`w-full bg-transparent border border-transparent rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-muted focus:outline-none focus:bg-background focus:border-ring ${numeric ? 'text-right tabular-nums font-mono' : ''
         } ${className}`}
     />
   )
-}
+})
 
-function ItemRow({ index, register, watch, setValue, products, onSelectProduct, onRemove, canRemove }) {
+function ItemRow({
+  index,
+  register,
+  watch,
+  setValue,
+  products,
+  onSelectProduct,
+  onRemove,
+  canRemove,
+  isLastRow,
+  append,
+}) {
   const inputRef = useRef(null)
   const [query, setQuery] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
+  function handleCellChange(field, value) {
+    const currentRow = watch(`items.${index}`)
 
+    const nextRow = {
+      ...currentRow,
+      [field]: value,
+    }
+
+    setValue(`items.${index}.${field}`, value)
+
+    if (isLastRow && isRowComplete(nextRow)) {
+      append({ ...emptyRow }, { shouldFocus: false })
+    }
+  }
   const quantity = Number(watch(`items.${index}.quantity`)) || 0
   const price = Number(watch(`items.${index}.price`)) || 0
   const total = quantity * price
@@ -131,6 +174,17 @@ function ItemRow({ index, register, watch, setValue, products, onSelectProduct, 
             rhfOnChange(e)
             setQuery(e.target.value)
             setShowDropdown(true)
+
+            const currentRow = watch(`items.${index}`)
+
+            const nextRow = {
+              ...currentRow,
+              product_name: e.target.value,
+            }
+
+            if (isLastRow && isRowComplete(nextRow)) {
+              append({ ...emptyRow }, { shouldFocus: false })
+            }
           }}
           onFocus={() => setShowDropdown(true)}
           onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
@@ -148,10 +202,36 @@ function ItemRow({ index, register, watch, setValue, products, onSelectProduct, 
           }}
         />
       </td>
-      <td className="w-24"><Cell {...register(`items.${index}.colour`)} /></td>
-      <td className="w-20"><Cell {...register(`items.${index}.size`)} /></td>
-      <td className="w-20"><Cell numeric type="number" {...register(`items.${index}.quantity`, { valueAsNumber: true })} placeholder="0" /></td>
-      <td className="w-24"><Cell numeric type="number" {...register(`items.${index}.price`, { valueAsNumber: true })} placeholder="0" /></td>
+      <td className="w-24">
+        <Cell
+          {...register(`items.${index}.colour`)}
+          onChange={(e) => handleCellChange('colour', e.target.value)}
+        />
+      </td>
+      <td className="w-20">
+        <Cell
+          {...register(`items.${index}.size`)}
+          onChange={(e) => handleCellChange('size', e.target.value)}
+        />
+      </td>
+      <td className="w-20">
+        <Cell
+          numeric
+          type="number"
+          placeholder="0"
+          {...register(`items.${index}.quantity`, { valueAsNumber: true })}
+          onChange={(e) => handleCellChange('quantity', e.target.value)}
+        />
+      </td>
+      <td className="w-24">
+        <Cell
+          numeric
+          type="number"
+          placeholder="0"
+          {...register(`items.${index}.price`, { valueAsNumber: true })}
+          onChange={(e) => handleCellChange('price', e.target.value)}
+        />
+      </td>
       <td className="w-28 text-right pr-2.5">
         <span className={`text-sm font-mono tabular-nums ${total > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
           {total > 0 ? total.toLocaleString() : '—'}
@@ -174,7 +254,7 @@ function ItemRow({ index, register, watch, setValue, products, onSelectProduct, 
 
 export default function NewBillForm({ firms, products, initialBill }) {
   const router = useRouter()
-  const { addActivity } = useActivity()
+  const { addActivity, updateActivity } = useActivity()
   const editingBillId = initialBill?.bill?.id || null
 
   const [clientQuery, setClientQuery] = useState('')
@@ -182,7 +262,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
   const [prevBalance, setPrevBalance] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const clientInputRef = useRef(null)
-  const lastRowIdWithContent = useRef(null)
+
   function buildDefaults() {
     if (initialBill?.bill) {
       return {
@@ -214,7 +294,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
       bilty_charges: 0,
       packaging_charges: 0,
       is_credit: true,
-      items: [emptyRow, emptyRow],
+      items: [{ ...emptyRow }],
     }
   }
 
@@ -233,30 +313,12 @@ export default function NewBillForm({ firms, products, initialBill }) {
   })
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
-  const watchedItems = watch('items')
+
   const watchedBilty = watch('bilty_charges') || 0
   const watchedPkg = watch('packaging_charges') || 0
   const watchedIsCredit = watch('is_credit')
 
-  useEffect(() => {
-    const lastIndex = watchedItems.length - 1
-    const lastItem = watchedItems[lastIndex]
-    const lastFieldId = fields[lastIndex]?.id
 
-    console.log('effect ran', {
-      lastIndex,
-      lastItemName: lastItem?.product_name,
-      lastFieldId,
-      lastRowIdWithContent: lastRowIdWithContent.current,
-      fieldsLength: fields.length,
-      itemsLength: watchedItems.length,
-    })
-
-    if (lastItem?.product_name?.trim() && lastFieldId && lastRowIdWithContent.current !== lastFieldId) {
-      lastRowIdWithContent.current = lastFieldId
-      append(emptyRow)
-    }
-  }, [watchedItems, fields, append])
 
   useEffect(() => {
     if (initialBill?.bill) {
@@ -271,7 +333,10 @@ export default function NewBillForm({ firms, products, initialBill }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const itemsTotal = watchedItems.reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.price) || 0), 0)
+  const itemsTotal = (watch('items') || []).reduce(
+    (s, i) => s + (Number(i.quantity) || 0) * (Number(i.price) || 0),
+    0
+  )
   const grandTotal = itemsTotal + Number(watchedBilty) + Number(watchedPkg)
   const amountWords = grandTotal > 0 ? toWords.convert(grandTotal, { currency: true }) : ''
   const newBalance = prevBalance != null ? prevBalance + grandTotal : null
@@ -290,13 +355,15 @@ export default function NewBillForm({ firms, products, initialBill }) {
   function selectProduct(index, product) {
     setValue(`items.${index}.product_name`, product.name, { shouldValidate: true })
     setValue(`items.${index}.product_id`, product.id)
-    if (!watchedItems[index].price) {
+
+    const currentPrice = watch(`items.${index}.price`)
+
+    if (!currentPrice) {
       setValue(`items.${index}.price`, product.standard_price)
     }
   }
 
   function startNewBill() {
-    lastRowIdWithContent.current = null
     setSubmitted(false)
     reset({
       firm_id: null,
@@ -306,7 +373,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
       bilty_charges: 0,
       packaging_charges: 0,
       is_credit: true,
-      items: [emptyRow, emptyRow],
+      items: [{ ...emptyRow }],
     })
     setClientQuery('')
     setPrevBalance(null)
@@ -330,6 +397,17 @@ export default function NewBillForm({ firms, products, initialBill }) {
     const firm = firms.find((f) => f.id === data.firm_id)
 
     if (editingBillId) {
+      updateActivity(editingBillId, {
+        firmId: data.firm_id,
+        firmName: firm?.name || '',
+        amount: result.bill.total_amount,
+        date: result.bill.bill_date,
+        bill: result.bill,
+        items: result.items,
+        amountWords: toWords.convert(result.bill.total_amount, { currency: true }),
+        prevBalance: prevBalance || 0,
+      })
+
       toast.success(`Bill #${result.bill.id} updated`)
       router.push('/new-bill')
       return
@@ -472,6 +550,8 @@ export default function NewBillForm({ firms, products, initialBill }) {
                     onSelectProduct={selectProduct}
                     onRemove={remove}
                     canRemove={fields.length > 1}
+                    isLastRow={index === fields.length - 1}
+                    append={append}
                   />
                 ))}
               </tbody>

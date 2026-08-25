@@ -13,14 +13,14 @@ export function ActivityProvider({ children }) {
     try {
       const stored = sessionStorage.getItem(STORAGE_KEY)
       if (stored) setEntries(JSON.parse(stored))
-    } catch {}
+    } catch { }
   }, [])
 
   function persist(next) {
     setEntries(next)
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-    } catch {}
+    } catch { }
   }
 
   function addActivity(entry) {
@@ -30,10 +30,25 @@ export function ActivityProvider({ children }) {
   function removeActivity(billId) {
     persist(entries.filter((e) => e.billId !== billId))
   }
+  function updateActivity(billId, updatedEntry) {
+    setEntries((currentEntries) => {
+      const next = currentEntries.map((entry) =>
+        Number(entry.billId) === Number(billId)
+          ? { ...entry, ...updatedEntry, billId: entry.billId }
+          : entry
+      )
 
+      try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      } catch { }
+
+      return next
+    })
+  }
   return (
-    <ActivityContext.Provider value={{ entries, addActivity, removeActivity }}>
-      {children}
+    <ActivityContext.Provider
+      value={{ entries, addActivity, updateActivity, removeActivity }}
+    >      {children}
     </ActivityContext.Provider>
   )
 }
