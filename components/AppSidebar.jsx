@@ -10,7 +10,7 @@ import {
 import { LayoutDashboard, FileText, Wallet, Users, Package, BarChart3, LogOut, Scissors } from 'lucide-react'
 
 const links = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/new-bill', label: 'New Bill', icon: FileText },
     { href: '/payments', label: 'Payments', icon: Wallet },
     { href: '/clients', label: 'Clients', icon: Users },

@@ -6,7 +6,7 @@ export default function TopProducts({ products, monthLabel, delayMs = 0 }) {
 
   return (
     <div
-      className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm opacity-0 animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md"
+      className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md"
       style={{
         animationDelay: `${delayMs}ms`,
         animationDuration: "500ms",
@@ -30,7 +30,7 @@ export default function TopProducts({ products, monthLabel, delayMs = 0 }) {
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
                 <div
-                  className="h-full rounded-full bg-neutral-900 opacity-0 animate-in fade-in"
+                  className="h-full rounded-full bg-neutral-900 animate-in fade-in"
                   style={{
                     width: `${pct}%`,
                     animationDelay: `${delayMs + 120 + i * 80}ms`,

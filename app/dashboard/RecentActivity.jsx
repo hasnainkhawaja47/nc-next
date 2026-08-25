@@ -5,7 +5,7 @@ import { formatPKR } from "./mockData";
 export default function RecentActivity({ items, delayMs = 0 }) {
   return (
     <div
-      className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm opacity-0 animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md"
+      className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3"
       style={{
         animationDelay: `${delayMs}ms`,
         animationDuration: "500ms",
@@ -27,6 +27,16 @@ export default function RecentActivity({ items, delayMs = 0 }) {
                 }
               />
               <span className="text-neutral-700">{a.client}</span>
+              <span
+                className={
+                  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium " +
+                  (a.type === "bill"
+                    ? "bg-neutral-100 text-neutral-700"
+                    : "bg-emerald-50 text-emerald-600")
+                }
+              >
+                {a.type === "bill" ? "Billed" : "Collected"}
+              </span>
             </div>
             <div className="flex items-center gap-3">
               <span className="tabular-nums text-neutral-900">

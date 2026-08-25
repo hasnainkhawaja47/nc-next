@@ -13,7 +13,7 @@ import { formatPKR } from "./mockData";
 export default function RevenueChart({ data, delayMs = 0 }) {
   return (
     <div
-      className="col-span-1 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm opacity-0 animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md lg:col-span-2"
+      className="col-span-1 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md lg:col-span-2"
       style={{
         animationDelay: `${delayMs}ms`,
         animationDuration: "500ms",
@@ -26,8 +26,8 @@ export default function RevenueChart({ data, delayMs = 0 }) {
           Last 6 months
         </span>
       </div>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-64" style={{ minHeight: 256 }}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
             <XAxis

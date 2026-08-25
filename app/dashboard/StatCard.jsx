@@ -15,7 +15,7 @@ export default function StatCard({
 
   return (
     <div
-      className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm opacity-0 animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md"
+      className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md"
       style={{
         animationDelay: `${index * 80}ms`,
         animationDuration: "500ms",
