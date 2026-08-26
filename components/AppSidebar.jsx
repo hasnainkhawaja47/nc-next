@@ -31,18 +31,17 @@ export default function AppSidebar() {
 
     return (
         <Sidebar collapsible="icon">
-            <SidebarHeader className="px-3 py-4">
+            <SidebarHeader className="py-4">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-[#C8A951] flex items-center justify-center shrink-0">
                         <Scissors className="w-4 h-4 text-[#1a1a2e]" />
                     </div>
-                    <div className="group-data-[collapsible=icon]:hidden">
-                        <div className="text-sm font-semibold leading-none">Needle Craft</div>
-                        <div className="text-xs text-gray-400">Manager</div>
+                    <div className="overflow-hidden transition-[opacity,width] duration-200 ease-linear group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0">
+                        <div className="text-sm font-semibold leading-none whitespace-nowrap">Needle Craft</div>
+                        <div className="text-xs text-gray-400 whitespace-nowrap">Manager</div>
                     </div>
                 </div>
             </SidebarHeader>
-
             <SidebarContent>
                 <SidebarGroup>
                     <SidebarGroupContent>

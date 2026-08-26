@@ -5,7 +5,7 @@ import {
 export default function DataTable({ columns, data, keyField = 'id', renderActions }) {
   return (
     <div className="border rounded-lg overflow-auto max-h-[70vh]">
-      <Table className="min-w-[600px]">
+      <Table className="min-w-full sm:min-w-[600px]">
         <TableHeader className="bg-muted">
           <TableRow>
             {columns.map((col) => (

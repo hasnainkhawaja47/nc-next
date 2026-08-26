@@ -23,6 +23,19 @@ export async function updateClient(id, formData) {
   return { success: true }
 }
 
+export async function getBillDetails(billId, isArchive) {
+  const supabase = createClient();
+  const billTable = isArchive ? "archive_bills" : "bills";
+  const itemsTable = isArchive ? "archive_bill_items" : "bill_items";
+
+  const [{ data: bill }, { data: items }] = await Promise.all([
+    supabase.from(billTable).select("*").eq("id", billId).single(),
+    supabase.from(itemsTable).select("*").eq("bill_id", billId),
+  ]);
+
+  return { bill, items: items ?? [] };
+}
+
 export async function deleteClient(id) {
   const supabase = await createClient()
 

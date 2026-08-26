@@ -1,3 +1,5 @@
+'use server'
+
 import { createClient } from '@/lib/supabase/server'
 
 async function getRows(supabase, table, columns, firmId, from, to, dateCol) {
@@ -115,4 +117,17 @@ export async function getLedger(firmId, from, to) {
   const totalPaid = allPmts.reduce((s, p) => s + (p.amount || 0), 0)
 
   return { entries, totalBilled, totalPaid, balance: running, openingBalance }
+}
+
+export async function getBillDetails(billId, isArchive) {
+  const supabase = await createClient()
+  const billTable = isArchive ? 'archive_bills' : 'bills'
+  const itemsTable = isArchive ? 'archive_bill_items' : 'bill_items'
+
+  const [{ data: bill }, { data: items }] = await Promise.all([
+    supabase.from(billTable).select('*').eq('id', billId).single(),
+    supabase.from(itemsTable).select('*').eq('bill_id', billId),
+  ])
+
+  return { bill, items: items ?? [] }
 }

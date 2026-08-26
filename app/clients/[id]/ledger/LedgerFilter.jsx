@@ -7,6 +7,11 @@ import { CalendarIcon, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import dynamic from 'next/dynamic'
+const LedgerPDFDownloadButton = dynamic(
+  () => import('@/components/LedgerPDF').then((mod) => mod.LedgerPDFDownloadButton),
+  { ssr: false }
+)
 
 function toISODate(date) {
   if (!date) return ''
@@ -19,7 +24,7 @@ function fromISODate(str) {
   return new Date(y, m - 1, d)
 }
 
-export default function LedgerFilter({ firmId, defaultFrom, defaultTo }) {
+export default function LedgerFilter({ firmId, defaultFrom, defaultTo, entries, firm, totals }) {
   const [from, setFrom] = useState(fromISODate(defaultFrom))
   const [to, setTo] = useState(fromISODate(defaultTo))
   const router = useRouter()
@@ -38,9 +43,9 @@ export default function LedgerFilter({ firmId, defaultFrom, defaultTo }) {
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground">From</label>
+    <div className="flex flex-wrap items-end justify-center gap-3">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs text-muted-foreground leading-none">From</label>
         <Popover>
           <PopoverTrigger
             render={
@@ -56,8 +61,8 @@ export default function LedgerFilter({ firmId, defaultFrom, defaultTo }) {
         </Popover>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs text-muted-foreground">To</label>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs text-muted-foreground leading-none">To</label>
         <Popover>
           <PopoverTrigger
             render={
@@ -82,6 +87,12 @@ export default function LedgerFilter({ firmId, defaultFrom, defaultTo }) {
           <X className="w-4 h-4 mr-1.5" />
           Clear
         </Button>
+        <LedgerPDFDownloadButton
+          entries={entries}
+          firm={firm}
+          dateRange={{ from: defaultFrom, to: defaultTo }}
+          totals={totals}
+        />
       </div>
     </div>
   )

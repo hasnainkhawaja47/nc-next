@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { addClient, updateClient, deleteClient } from './actions'
@@ -11,13 +11,21 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Plus, Pencil, Trash2, BookOpen } from 'lucide-react'
+import { Plus, Pencil, Trash2, X , BookOpen, Search } from 'lucide-react'
 
 export default function ClientsTable({ initialClients }) {
+
   const [clients] = useState(initialClients)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState(null)
+  const [query, setQuery] = useState("");
+
+  const filteredFirms = useMemo(() => {
+    if (!query.trim()) return initialClients;
+    const q = query.toLowerCase();
+    return initialClients.filter((firm) => firm.name.toLowerCase().includes(q));
+  }, [initialClients, query]);
 
   function openAdd() {
     setEditing(null)
@@ -87,11 +95,29 @@ export default function ClientsTable({ initialClients }) {
           Add client
         </Button>
       </div>
+      <div className="relative w-full mb-4">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search clients..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="pl-8 pr-8"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
 
       <div className="animate-in fade-in duration-300">
         <DataTable
           columns={columns}
-          data={clients}
+          data={filteredFirms}
           renderActions={(c) => (
             <div className="flex gap-1">
               <Link
