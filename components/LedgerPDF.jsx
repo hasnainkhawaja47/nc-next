@@ -42,6 +42,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   clientName: { fontSize: 12, fontFamily: "Helvetica-Bold" },
+  clientDetail: { fontSize: 8, color: "#555", marginTop: 2 },
   rangeLabel: { fontSize: 9, color: "#333" },
   table: { width: "100%", marginTop: 4 },
   tableHeaderRow: {
@@ -122,7 +123,7 @@ const fmtDate = (d) => {
 /**
  * entries: ledger.entries as returned by getLedger() — same array the
  *   on-screen table renders, already filtered to the current date range.
- * firm: { name }
+ * firm: { name, address?, phone? }
  * dateRange: { from: string, to: string }
  * totals: { totalBilled, totalPaid, balance } — from getLedger(), used
  *   for the closing summary so it exactly matches the on-screen cards.
@@ -160,7 +161,15 @@ export function LedgerPDF({ entries = [], firm, dateRange, totals }) {
         </View>
 
         <View style={styles.clientBlock}>
-          <Text style={styles.clientName}>{firm?.name || ""}</Text>
+          <View>
+            <Text style={styles.clientName}>{firm?.name || ""}</Text>
+            {firm?.address ? (
+              <Text style={styles.clientDetail}>{firm.address}</Text>
+            ) : null}
+            {firm?.phone ? (
+              <Text style={styles.clientDetail}>{firm.phone}</Text>
+            ) : null}
+          </View>
           <Text style={styles.rangeLabel}>Period: {rangeText}</Text>
         </View>
 

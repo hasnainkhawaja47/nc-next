@@ -18,11 +18,34 @@ export default async function PaymentsPage() {
   ])
 
   const columns = [
-    { key: 'payment_date', header: 'Date' },
-    { key: 'firm', header: 'Client', render: (p) => p.firms?.name || '—' },
+    {
+        key: 'payment_date',
+        header: 'Date',
+        render: (p) =>
+            new Date(p.payment_date)
+                .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+                .replace(/ /g, '-'),
+    },
+    {
+      key: 'firm',
+      header: 'Client',
+      render: (p) => (
+        <span className="block max-w-[120px] whitespace-normal break-words">
+          {p.firms?.name || '—'}
+        </span>
+      ),
+    },
     { key: 'amount', header: 'Amount', render: (p) => `Rs ${p.amount?.toLocaleString()}` },
     { key: 'method', header: 'Method' },
-    { key: 'bank_name', header: 'Bank / Ref' },
+    {
+      key: 'bank_name',
+      header: 'Bank / Ref',
+      render: (p) => (
+        <span className="block max-w-[140px] whitespace-normal break-words">
+          {p.bank_name || '—'}
+        </span>
+      ),
+    },
   ]
 
   return (

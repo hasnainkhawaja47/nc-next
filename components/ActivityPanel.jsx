@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { pdf } from '@react-pdf/renderer'
 import { toast } from 'sonner'
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useActivity } from '@/lib/activity-context'
 import { deleteBill } from '@/app/new-bill/actions'
-import BillDocument from '@/components/BillDocument'
+import BillDocument, { BillsDocument } from '@/components/BillDocument'
 import { usePathname } from 'next/navigation'
 import {
     Tooltip,
@@ -28,12 +28,22 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
+const LONG_PRESS_MS = 450
+
 export default function ActivityPanel() {
     const { entries, removeActivity } = useActivity()
     const [open, setOpen] = useState(false)
     const pathname = usePathname()
     const [deleteEntry, setDeleteEntry] = useState(null)
     const [deleting, setDeleting] = useState(false)
+
+    // Bulk selection state
+    const [selectMode, setSelectMode] = useState(false)
+    const [selectedIds, setSelectedIds] = useState(new Set())
+    const [bulkPrinting, setBulkPrinting] = useState(false)
+    const longPressTimer = useRef(null)
+    const longPressFired = useRef(false)
+
     if (pathname === '/login') return null
     if (entries.length === 0) return null
 
@@ -50,6 +60,61 @@ export default function ActivityPanel() {
 
         const blob = await pdf(doc).toBlob()
         window.open(URL.createObjectURL(blob), '_blank')
+    }
+
+    async function handlePrintSelected() {
+        const selected = entries.filter((e) => selectedIds.has(e.billId))
+        if (selected.length === 0) return
+
+        setBulkPrinting(true)
+        try {
+            const blob = await pdf(<BillsDocument entries={selected} />).toBlob()
+            window.open(URL.createObjectURL(blob), '_blank')
+            exitSelectMode()
+        } catch (err) {
+            toast.error('Failed to generate PDF')
+        } finally {
+            setBulkPrinting(false)
+        }
+    }
+
+    function toggleSelected(billId) {
+        setSelectedIds((prev) => {
+            const next = new Set(prev)
+            if (next.has(billId)) next.delete(billId)
+            else next.add(billId)
+            return next
+        })
+    }
+
+    function exitSelectMode() {
+        setSelectMode(false)
+        setSelectedIds(new Set())
+    }
+
+    function startLongPress(billId) {
+        longPressFired.current = false
+        longPressTimer.current = setTimeout(() => {
+            longPressFired.current = true
+            setSelectMode(true)
+            setSelectedIds(new Set([billId]))
+        }, LONG_PRESS_MS)
+    }
+
+    function cancelLongPress() {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current)
+            longPressTimer.current = null
+        }
+    }
+
+    function handleRowClick(billId) {
+        // Swallow the click that follows a fired long-press
+        if (longPressFired.current) {
+            longPressFired.current = false
+            return
+        }
+        if (selectMode) toggleSelected(billId)
     }
 
     async function handleDelete() {
@@ -135,231 +200,315 @@ export default function ActivityPanel() {
                             text-white
                         "
                     >
-                        <span className="text-sm font-medium">
-                            Recent bills
-                        </span>
+                        {selectMode ? (
+                            <span className="text-sm font-medium">
+                                {selectedIds.size} selected
+                            </span>
+                        ) : (
+                            <span className="text-sm font-medium">
+                                Recent bills
+                            </span>
+                        )}
 
-                        {/* FAB morphs into close button */}
-                        <button
-                            onClick={() => setOpen(false)}
-                            aria-label="Close recent bills"
-                            title="Close"
-                            className="
-                                flex items-center justify-center
-                                w-8 h-8 rounded-full
-                                text-gray-300
-                                hover:text-white
-                                hover:bg-white/10
-                                transition-all duration-200
-                                hover:rotate-90
-                                active:scale-90
-                            "
-                        >
-                            <svg
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
+                        <div className="flex items-center gap-1">
+                            {selectMode && (
+                                <button
+                                    onClick={handlePrintSelected}
+                                    disabled={selectedIds.size === 0 || bulkPrinting}
+                                    aria-label="Print selected bills"
+                                    title="Print selected"
+                                    className="
+                                        flex items-center justify-center
+                                        w-8 h-8 rounded-full
+                                        text-gray-300
+                                        hover:text-white
+                                        hover:bg-white/10
+                                        disabled:opacity-40
+                                        disabled:hover:bg-transparent
+                                        transition-all duration-150
+                                        active:scale-90
+                                    "
+                                >
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M6 9V2h12v7" />
+                                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                                        <path d="M6 14h12v8H6z" />
+                                    </svg>
+                                </button>
+                            )}
+
+                            {/* FAB morphs into close / exit-select button */}
+                            <button
+                                onClick={() => (selectMode ? exitSelectMode() : setOpen(false))}
+                                aria-label={selectMode ? 'Cancel selection' : 'Close recent bills'}
+                                title={selectMode ? 'Cancel' : 'Close'}
+                                className="
+                                    flex items-center justify-center
+                                    w-8 h-8 rounded-full
+                                    text-gray-300
+                                    hover:text-white
+                                    hover:bg-white/10
+                                    transition-all duration-200
+                                    hover:rotate-90
+                                    active:scale-90
+                                "
                             >
-                                <path d="M18 6L6 18" />
-                                <path d="M6 6l12 12" />
-                            </svg>
-                        </button>
+                                <svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="M18 6L6 18" />
+                                    <path d="M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Bills */}
                     <ScrollArea className="max-h-[calc(70vh-48px)]">
                         <div className="divide-y">
-                            {entries.map((entry) => (
-                                <div
-                                    key={entry.billId}
-                                    className="
-                                        px-4 py-3
-                                        transition-all duration-200
-                                        hover:bg-muted/40
-                                        animate-in fade-in slide-in-from-right-3
-                                    "
-                                >
-                                    {/* Bill number + amount */}
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className="text-sm font-medium">
-                                            Bill #{entry.billId}
-                                        </span>
+                            {entries.map((entry) => {
+                                const isSelected = selectedIds.has(entry.billId)
+                                return (
+                                    <div
+                                        key={entry.billId}
+                                        onPointerDown={() => startLongPress(entry.billId)}
+                                        onPointerUp={cancelLongPress}
+                                        onPointerLeave={cancelLongPress}
+                                        onPointerCancel={cancelLongPress}
+                                        onClick={() => handleRowClick(entry.billId)}
+                                        className={`
+                                            px-4 py-3
+                                            transition-all duration-200
+                                            select-none
+                                            animate-in fade-in slide-in-from-right-3
+                                            ${selectMode ? 'cursor-pointer' : ''}
+                                            ${isSelected ? 'bg-blue-50' : 'hover:bg-muted/40'}
+                                        `}
+                                    >
+                                        <div className="flex items-start gap-2">
+                                            {selectMode && (
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => toggleSelected(entry.billId)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="mt-1 shrink-0"
+                                                    aria-label={`Select bill #${entry.billId}`}
+                                                />
+                                            )}
 
-                                        <span className="text-sm">
-                                            Rs {entry.amount.toLocaleString()}
-                                        </span>
-                                    </div>
+                                            <div className="flex-1 min-w-0">
+                                                {/* Bill number + amount */}
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <span className="text-sm font-medium">
+                                                        Bill #{entry.billId}
+                                                    </span>
 
-                                    {/* Client + date */}
-                                    <div className="text-xs text-gray-500 mb-2">
-                                        {entry.firmName} · {entry.date}
-                                    </div>
+                                                    <span className="text-sm">
+                                                        Rs {entry.amount.toLocaleString()}
+                                                    </span>
+                                                </div>
 
-                                    {/* Action icons */}
-                                    <TooltipProvider delayDuration={200}>
-                                        <div className="flex items-center gap-1">
+                                                {/* Client + date */}
+                                                <div className="text-xs text-gray-500 mb-2">
+                                                    {entry.firmName} · {entry.date}
+                                                </div>
 
-                                            {/* Edit */}
-                                            <Tooltip>
-                                                <TooltipTrigger aschild="true">
-                                                    <Link
-                                                        href={`/new-bill?edit=${entry.billId}`}
-                                                        aria-label="Edit bill"
-                                                        className="
-                                                        inline-flex items-center justify-center
-                                                        w-8 h-8 rounded-md
-                                                        text-blue-600
-                                                        hover:bg-blue-50
-                                                        hover:text-blue-700
-                                                        transition-all duration-150
-                                                        hover:scale-110
-                                                        active:scale-95
-                                                        "
-                                                    >
-                                                        <svg
-                                                            width="16"
-                                                            height="16"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            strokeWidth="2"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                        >
-                                                            <path d="M12 20h9" />
-                                                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                                        </svg>
-                                                    </Link>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Edit bill</p>
-                                                </TooltipContent>
-                                            </Tooltip>
+                                                {/* Action icons — hidden in select mode */}
+                                                {!selectMode && (
+                                                    <TooltipProvider delayDuration={200}>
+                                                        <div className="flex items-center gap-1">
 
-                                            {/* Print */}
-                                            <Tooltip>
-                                                <TooltipTrigger>
-                                                    <button
-                                                        onClick={() => handlePrint(entry)}
-                                                        aria-label="Print bill"
-                                                        className="
-                                                        inline-flex items-center justify-center
-                                                        w-8 h-8 rounded-md
-                                                        text-blue-600
-                                                        hover:bg-blue-50
-                                                        hover:text-blue-700
-                                                        transition-all duration-150
-                                                        hover:scale-110
-                                                        active:scale-95
-                                                    "
-                                                    >
-                                                        <svg
-                                                            width="16"
-                                                            height="16"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            strokeWidth="2"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                        >
-                                                            <path d="M6 9V2h12v7" />
-                                                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                                                            <path d="M6 14h12v8H6z" />
-                                                        </svg>
-                                                    </button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Print bill</p>
-                                                </TooltipContent>
-                                            </Tooltip>
+                                                            {/* Edit */}
+                                                            <Tooltip>
+                                                                <TooltipTrigger
+                                                                    render={
+                                                                        <Link
+                                                                            href={`/new-bill?edit=${entry.billId}`}
+                                                                            aria-label="Edit bill"
+                                                                            className="
+                                                                            inline-flex items-center justify-center
+                                                                            w-8 h-8 rounded-md
+                                                                            text-blue-600
+                                                                            hover:bg-blue-50
+                                                                            hover:text-blue-700
+                                                                            transition-all duration-150
+                                                                            hover:scale-110
+                                                                            active:scale-95
+                                                                            "
+                                                                        >
+                                                                            <svg
+                                                                                width="16"
+                                                                                height="16"
+                                                                                viewBox="0 0 24 24"
+                                                                                fill="none"
+                                                                                stroke="currentColor"
+                                                                                strokeWidth="2"
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                            >
+                                                                                <path d="M12 20h9" />
+                                                                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                                                            </svg>
+                                                                        </Link>
+                                                                    }
+                                                                />
+                                                                <TooltipContent>
+                                                                    <p>Edit bill</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
 
-                                            {/* Ledger */}
-                                            <Tooltip>
-                                                <TooltipTrigger aschild="true">
-                                                    <Link
-                                                        href={`/clients/${entry.firmId}/ledger`}
-                                                        aria-label="Open ledger"
-                                                        className="
-                                                        inline-flex items-center justify-center
-                                                        w-8 h-8 rounded-md
-                                                        text-blue-600
-                                                        hover:bg-blue-50
-                                                        hover:text-blue-700
-                                                        transition-all duration-150
-                                                        hover:scale-110
-                                                        active:scale-95
-                                                    "
-                                                    >
-                                                        <svg
-                                                            width="16"
-                                                            height="16"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            strokeWidth="2"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                        >
-                                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
-                                                        </svg>
-                                                    </Link>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Open ledger</p>
-                                                </TooltipContent>
-                                            </Tooltip>
+                                                            {/* Print */}
+                                                            <Tooltip>
+                                                                <TooltipTrigger
+                                                                    render={
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                handlePrint(entry)
+                                                                            }}
+                                                                            aria-label="Print bill"
+                                                                            className="
+                                                                            inline-flex items-center justify-center
+                                                                            w-8 h-8 rounded-md
+                                                                            text-blue-600
+                                                                            hover:bg-blue-50
+                                                                            hover:text-blue-700
+                                                                            transition-all duration-150
+                                                                            hover:scale-110
+                                                                            active:scale-95
+                                                                        "
+                                                                        >
+                                                                            <svg
+                                                                                width="16"
+                                                                                height="16"
+                                                                                viewBox="0 0 24 24"
+                                                                                fill="none"
+                                                                                stroke="currentColor"
+                                                                                strokeWidth="2"
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                            >
+                                                                                <path d="M6 9V2h12v7" />
+                                                                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                                                                                <path d="M6 14h12v8H6z" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    }
+                                                                />
+                                                                <TooltipContent>
+                                                                    <p>Print bill</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
 
-                                            {/* Delete */}
-                                            <Tooltip>
-                                                <TooltipTrigger aschild="true">
-                                                    <button
-                                                        onClick={() => setDeleteEntry(entry)}
-                                                        aria-label="Delete bill"
-                                                        className="
-                                                        inline-flex items-center justify-center
-                                                        w-8 h-8 rounded-md
-                                                        text-red-600
-                                                        hover:bg-red-50
-                                                        hover:text-red-700
-                                                        transition-all duration-150
-                                                        hover:scale-110
-                                                        active:scale-95
-                                                    "
-                                                    >
-                                                        <svg
-                                                            width="16"
-                                                            height="16"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            strokeWidth="2"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                        >
-                                                            <path d="M3 6h18" />
-                                                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                                                            <path d="M10 11v6" />
-                                                            <path d="M14 11v6" />
-                                                        </svg>
-                                                    </button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Delete bill</p>
-                                                </TooltipContent>
-                                            </Tooltip>
+                                                            {/* Ledger */}
+                                                            <Tooltip>
+                                                                <TooltipTrigger
+                                                                    render={
+                                                                        <Link
+                                                                            href={`/clients/${entry.firmId}/ledger`}
+                                                                            aria-label="Open ledger"
+                                                                            className="
+                                                                            inline-flex items-center justify-center
+                                                                            w-8 h-8 rounded-md
+                                                                            text-blue-600
+                                                                            hover:bg-blue-50
+                                                                            hover:text-blue-700
+                                                                            transition-all duration-150
+                                                                            hover:scale-110
+                                                                            active:scale-95
+                                                                        "
+                                                                        >
+                                                                            <svg
+                                                                                width="16"
+                                                                                height="16"
+                                                                                viewBox="0 0 24 24"
+                                                                                fill="none"
+                                                                                stroke="currentColor"
+                                                                                strokeWidth="2"
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                            >
+                                                                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                                                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+                                                                            </svg>
+                                                                        </Link>
+                                                                    }
+                                                                />
+                                                                <TooltipContent>
+                                                                    <p>Open ledger</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
 
+                                                            {/* Delete */}
+                                                            <Tooltip>
+                                                                <TooltipTrigger
+                                                                    render={
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation()
+                                                                                setDeleteEntry(entry)
+                                                                            }}
+                                                                            aria-label="Delete bill"
+                                                                            className="
+                                                                            inline-flex items-center justify-center
+                                                                            w-8 h-8 rounded-md
+                                                                            text-red-600
+                                                                            hover:bg-red-50
+                                                                            hover:text-red-700
+                                                                            transition-all duration-150
+                                                                            hover:scale-110
+                                                                            active:scale-95
+                                                                        "
+                                                                        >
+                                                                            <svg
+                                                                                width="16"
+                                                                                height="16"
+                                                                                viewBox="0 0 24 24"
+                                                                                fill="none"
+                                                                                stroke="currentColor"
+                                                                                strokeWidth="2"
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                            >
+                                                                                <path d="M3 6h18" />
+                                                                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                                                                <path d="M10 11v6" />
+                                                                                <path d="M14 11v6" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    }
+                                                                />
+                                                                <TooltipContent>
+                                                                    <p>Delete bill</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+
+                                                        </div>
+                                                    </TooltipProvider>
+                                                )}
+                                            </div>
                                         </div>
-                                    </TooltipProvider>
-                                </div>
-                            ))}
+                                    </div>
+                                )
+                            })}
                         </div>
                     </ScrollArea>
                 </Card>

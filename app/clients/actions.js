@@ -7,6 +7,8 @@ export async function addClient(formData) {
   const supabase = await createClient()
   const { error } = await supabase.from('firms').insert({
     name: formData.get('name'),
+    address: formData.get('address') || null,
+    phone: formData.get('phone') || null,
   })
   if (error) return { error: error.message }
   revalidatePath('/clients')
@@ -17,6 +19,8 @@ export async function updateClient(id, formData) {
   const supabase = await createClient()
   const { error } = await supabase.from('firms').update({
     name: formData.get('name'),
+    address: formData.get('address') || null,
+    phone: formData.get('phone') || null,
   }).eq('id', id)
   if (error) return { error: error.message }
   revalidatePath('/clients')

@@ -11,14 +11,16 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Plus, Pencil, Trash2, X , BookOpen, Search } from 'lucide-react'
+import { Plus, IdCard, Trash2, X, BookOpen, Search } from 'lucide-react'
 
 export default function ClientsTable({ initialClients }) {
 
   const [clients] = useState(initialClients)
   const [modalOpen, setModalOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState(null)
+  const [detailsError, setDetailsError] = useState(null)
   const [query, setQuery] = useState("");
 
   const filteredFirms = useMemo(() => {
@@ -33,25 +35,37 @@ export default function ClientsTable({ initialClients }) {
     setModalOpen(true)
   }
 
-  function openEdit(c) {
+  function openDetails(c) {
     setEditing(c)
-    setError(null)
-    setModalOpen(true)
+    setDetailsError(null)
+    setDetailsOpen(true)
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     const formData = new FormData(e.target)
-    const result = editing
-      ? await updateClient(editing.id, formData)
-      : await addClient(formData)
+    const result = await addClient(formData)
 
     if (result.error) {
       setError(result.error)
       return
     }
     setModalOpen(false)
-    toast.success(editing ? 'Client updated' : 'Client added')
+    toast.success('Client added')
+    window.location.reload()
+  }
+
+  async function handleDetailsSubmit(e) {
+    e.preventDefault()
+    const formData = new FormData(e.target)
+    const result = await updateClient(editing.id, formData)
+
+    if (result.error) {
+      setDetailsError(result.error)
+      return
+    }
+    setDetailsOpen(false)
+    toast.success('Client updated')
     window.location.reload()
   }
 
@@ -126,8 +140,8 @@ export default function ClientsTable({ initialClients }) {
               >
                 <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
               </Link>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}>
-                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetails(c)}>
+                <IdCard className="w-3.5 h-3.5 text-muted-foreground" />
               </Button>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(c.id)}>
                 <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
@@ -137,21 +151,60 @@ export default function ClientsTable({ initialClients }) {
         />
       </div>
 
+      {/* Add client dialog */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="animate-in fade-in zoom-in-95 duration-200">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit client' : 'Add client'}</DialogTitle>
+            <DialogTitle>Add client</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" name="name" defaultValue={editing?.name} required autoFocus />
+              <Input id="name" name="name" required autoFocus />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="address">Address <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input id="address" name="address" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="phone">Phone <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input id="phone" name="phone" />
             </div>
             {error && (
               <p className="text-red-600 text-xs animate-in fade-in slide-in-from-top-1">{error}</p>
             )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+              <Button type="submit">Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Client details dialog (view/edit name, address, phone) */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="animate-in fade-in zoom-in-95 duration-200">
+          <DialogHeader>
+            <DialogTitle>Client details</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleDetailsSubmit} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="details-name">Name</Label>
+              <Input id="details-name" name="name" defaultValue={editing?.name} required autoFocus />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="details-address">Address <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input id="details-address" name="address" defaultValue={editing?.address ?? ''} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="details-phone">Phone <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input id="details-phone" name="phone" defaultValue={editing?.phone ?? ''} />
+            </div>
+            {detailsError && (
+              <p className="text-red-600 text-xs animate-in fade-in slide-in-from-top-1">{detailsError}</p>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDetailsOpen(false)}>Cancel</Button>
               <Button type="submit">Save</Button>
             </DialogFooter>
           </form>

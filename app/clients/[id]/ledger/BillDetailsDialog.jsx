@@ -51,8 +51,7 @@ export function BillDetailsDialog({ billId, isArchive, open, onOpenChange }) {
             {/* Summary card */}
             <div className="rounded-xl border border-border/60 bg-muted/30 p-4 grid grid-cols-2 gap-y-2 text-sm">
               <div className="text-muted-foreground">Date</div>
-              <div className="text-right">{bill.bill_date}</div>
-              <div className="text-muted-foreground">Bilty No.</div>
+              <div className="text-right">{new Date(bill.bill_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-')}</div>              <div className="text-muted-foreground">Bilty No.</div>
               <div className="text-right">{bill.bilty_no || "—"}</div>
               <div className="text-muted-foreground">D.O. No.</div>
               <div className="text-right">{bill.do_no || "—"}</div>

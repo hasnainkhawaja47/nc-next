@@ -50,7 +50,7 @@ export default function LedgerEntriesTable({ entries }) {
                     }
                   }}
                 >
-                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{e.date}</TableCell>
+                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{new Date(e.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-')}</TableCell>
                   <TableCell className="whitespace-normal break-words max-w-[160px] sm:max-w-none">
                     {e.type === 'opening' ? e.description : (
                       <>

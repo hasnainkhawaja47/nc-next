@@ -10,7 +10,7 @@ export default async function LedgerPage({ params, searchParams }) {
   const from = sp.from || '2024-01-01'
   const to = sp.to || ''
   const supabase = await createClient()
-  const { data: firm } = await supabase.from('firms').select('name').eq('id', id).single()
+  const { data: firm } = await supabase.from('firms').select('name, address, phone').eq('id', id).single()
   const ledger = await getLedger(id, from, to)
 
   return (

@@ -12,6 +12,10 @@ const LedgerPDFDownloadButton = dynamic(
   () => import('@/components/LedgerPDF').then((mod) => mod.LedgerPDFDownloadButton),
   { ssr: false }
 )
+const EnvelopePDFDownloadButton = dynamic(
+  () => import('@/components/EnvelopePDF').then((mod) => mod.EnvelopePDFDownloadButton),
+  { ssr: false }
+)
 
 function toISODate(date) {
   if (!date) return ''
@@ -93,6 +97,7 @@ export default function LedgerFilter({ firmId, defaultFrom, defaultTo, entries, 
           dateRange={{ from: defaultFrom, to: defaultTo }}
           totals={totals}
         />
+        <EnvelopePDFDownloadButton firm={firm} />
       </div>
     </div>
   )
