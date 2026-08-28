@@ -19,12 +19,12 @@ export default async function PaymentsPage() {
 
   const columns = [
     {
-        key: 'payment_date',
-        header: 'Date',
-        render: (p) =>
-            new Date(p.payment_date)
-                .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
-                .replace(/ /g, '-'),
+      key: 'payment_date',
+      header: 'Date',
+      render: (p) =>
+        new Date(p.payment_date)
+          .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+          .replace(/ /g, '-'),
     },
     {
       key: 'firm',
@@ -55,11 +55,11 @@ export default async function PaymentsPage() {
         Payments
       </h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-6 items-start">
         <PaymentsForm firms={firms || []} />
 
-        <div>
-          <h2 className="text-sm font-medium text-gray-600 mb-2">Recent payments</h2>
+        <div className="min-w-0">
+          <h2 className="text-sm font-medium text-muted-foreground mb-2">Recent payments</h2>
           <DataTable
             columns={columns}
             data={payments || []}

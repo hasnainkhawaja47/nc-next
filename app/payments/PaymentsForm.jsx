@@ -6,23 +6,20 @@ import { addPayment, getFirmBalance } from './actions'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { format } from 'date-fns'
-import { CalendarIcon, Loader2 } from 'lucide-react'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Loader2 } from 'lucide-react'
+import PaymentFields from './PaymentFields'
 
 export default function PaymentsForm({ firms }) {
   const [query, setQuery] = useState('')
-  const [loading, setLoading] = useState(false)
   const [selectedFirm, setSelectedFirm] = useState(null)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [highlightedFirm, setHighlightedFirm] = useState(-1)
   const [method, setMethod] = useState('Cash')
   const [amount, setAmount] = useState('')
   const [balance, setBalance] = useState(null)
   const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
   const formRef = useRef(null)
-  const [highlightedFirm, setHighlightedFirm] = useState(-1)
   const [date, setDate] = useState(new Date())
 
   const filtered =
@@ -52,7 +49,6 @@ export default function PaymentsForm({ firms }) {
 
     const formData = new FormData(e.target)
     formData.set('firm_id', selectedFirm.id)
-    formData.set('payment_date', format(date, 'yyyy-MM-dd'))
 
     const result = await addPayment(formData)
 
@@ -77,9 +73,6 @@ export default function PaymentsForm({ firms }) {
     setDate(new Date())
   }
 
-  const numericAmount = Number(amount) || 0
-  const newBalance = balance != null ? balance - numericAmount : null
-
   return (
     <div className="border rounded-xl p-6 max-w-md animate-in fade-in duration-300 shadow-sm">
       <div className="mb-5">
@@ -94,13 +87,14 @@ export default function PaymentsForm({ firms }) {
             className="h-10 rounded-lg"
             value={query}
             onChange={(e) => {
-              setHighlightedFirm(-1)
               setQuery(e.target.value)
               setSelectedFirm(null)
               setBalance(null)
               setShowDropdown(true)
+              setHighlightedFirm(-1)
             }}
             onFocus={() => setShowDropdown(true)}
+            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
             onKeyDown={(e) => {
               if (!showDropdown || filtered.length === 0) return
               if (e.key === 'ArrowDown') {
@@ -129,8 +123,9 @@ export default function PaymentsForm({ firms }) {
                   key={f.id}
                   onMouseDown={(e) => { e.preventDefault(); selectFirm(f) }}
                   onMouseEnter={() => setHighlightedFirm(i)}
-                  className={`px-3 py-2 text-sm cursor-pointer transition-colors ${i === highlightedFirm ? 'bg-muted' : 'hover:bg-muted'
-                    }`}
+                  className={`px-3 py-2 text-sm cursor-pointer transition-colors ${
+                    i === highlightedFirm ? 'bg-muted' : 'hover:bg-muted'
+                  }`}
                 >
                   {f.name}
                 </div>
@@ -139,100 +134,18 @@ export default function PaymentsForm({ firms }) {
           )}
         </div>
 
-        <div className="space-y-1.5">
-          <Label>Date</Label>
-          <Popover>
-            <PopoverTrigger
-              render={
-                <Button disabled={loading} variant="outline" className="w-full h-10 rounded-lg justify-start font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, 'PP') : 'Pick a date'}
-                </Button>
-              }
-            />
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={date} onSelect={setDate} />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>Amount (Rs)</Label>
-          <Input
-            className="h-10 rounded-lg"
-            name="amount"
-            type="number"
-            min="0"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-            disabled={loading}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Payment method</Label>
-          <RadioGroup
-            name="method"
-            value={method}
-            onValueChange={setMethod}
-            className="grid grid-cols-2 gap-2"
-            disabled={loading}
-          >
-            {['Cash', 'Cheque', 'Bank Transfer', 'Draft'].map((option) => (
-              <label
-                key={option}
-                htmlFor={option}
-                className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm cursor-pointer transition-colors ${method === option ? 'border-primary bg-muted/50' : 'hover:bg-muted/30'
-                  }`}
-              >
-                <RadioGroupItem value={option} id={option} />
-                {option}
-              </label>
-            ))}
-          </RadioGroup>
-        </div>
-
-        {method !== 'Cash' && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-top-1">
-            <div className="space-y-1.5">
-              <Label>Bank name</Label>
-              <Input className="h-10 rounded-lg" disabled={loading} name="bank_name" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Cheque / Reference #</Label>
-              <Input className="h-10 rounded-lg" disabled={loading} name="cheque_number" />
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-1.5">
-          <Label>Memo</Label>
-          <Input className="h-10 rounded-lg" name="memo" disabled={loading} placeholder="Optional note" />
-        </div>
+        <PaymentFields
+          date={date}
+          setDate={setDate}
+          amount={amount}
+          setAmount={setAmount}
+          method={method}
+          setMethod={setMethod}
+          balance={selectedFirm ? balance : null}
+          disabled={loading}
+        />
 
         {error && <p className="text-red-600 text-xs animate-in fade-in slide-in-from-top-1">{error}</p>}
-
-        {selectedFirm && balance != null && (
-          <div className="rounded-xl bg-muted/50 border p-4 space-y-2 animate-in fade-in slide-in-from-top-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Current balance</span>
-              <span className={balance > 0 ? 'text-red-600' : 'text-green-600'}>
-                Rs {balance.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Payment amount</span>
-              <span>- Rs {numericAmount.toLocaleString()}</span>
-            </div>
-            <div className="border-t pt-2 flex justify-between text-sm font-semibold">
-              <span>New balance</span>
-              <span className={newBalance > 0 ? 'text-red-600' : 'text-green-600'}>
-                Rs {newBalance.toLocaleString()}
-              </span>
-            </div>
-          </div>
-        )}
 
         <div className="flex gap-2 pt-1">
           <Button
