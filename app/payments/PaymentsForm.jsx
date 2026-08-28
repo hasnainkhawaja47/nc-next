@@ -8,12 +8,13 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Loader2 } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 export default function PaymentsForm({ firms }) {
   const [query, setQuery] = useState('')
+  const [loading, setLoading] = useState(false)
   const [selectedFirm, setSelectedFirm] = useState(null)
   const [showDropdown, setShowDropdown] = useState(false)
   const [method, setMethod] = useState('Cash')
@@ -21,6 +22,7 @@ export default function PaymentsForm({ firms }) {
   const [balance, setBalance] = useState(null)
   const [error, setError] = useState(null)
   const formRef = useRef(null)
+  const [highlightedFirm, setHighlightedFirm] = useState(-1)
   const [date, setDate] = useState(new Date())
 
   const filtered =
@@ -46,10 +48,15 @@ export default function PaymentsForm({ firms }) {
       return
     }
 
+    setLoading(true)
+
     const formData = new FormData(e.target)
     formData.set('firm_id', selectedFirm.id)
     formData.set('payment_date', format(date, 'yyyy-MM-dd'))
 
+    const result = await addPayment(formData)
+
+    setLoading(false)
 
     if (result.error) {
       setError(result.error)
@@ -87,22 +94,43 @@ export default function PaymentsForm({ firms }) {
             className="h-10 rounded-lg"
             value={query}
             onChange={(e) => {
+              setHighlightedFirm(-1)
               setQuery(e.target.value)
               setSelectedFirm(null)
               setBalance(null)
               setShowDropdown(true)
             }}
             onFocus={() => setShowDropdown(true)}
+            onKeyDown={(e) => {
+              if (!showDropdown || filtered.length === 0) return
+              if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                setHighlightedFirm((i) => (i + 1) % filtered.length)
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault()
+                setHighlightedFirm((i) => (i <= 0 ? filtered.length - 1 : i - 1))
+              } else if (e.key === 'Tab' && highlightedFirm >= 0) {
+                selectFirm(filtered[highlightedFirm])
+              } else if (e.key === 'Enter' && highlightedFirm >= 0) {
+                e.preventDefault()
+                selectFirm(filtered[highlightedFirm])
+              } else if (e.key === 'Escape') {
+                setShowDropdown(false)
+              }
+            }}
             placeholder="Type to search..."
             autoComplete="off"
+            disabled={loading}
           />
-          {showDropdown && filtered.length > 0 && (
+          {showDropdown && !loading && filtered.length > 0 && (
             <div className="absolute z-20 bg-background border rounded-lg shadow-md w-full mt-1 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1">
-              {filtered.map((f) => (
+              {filtered.map((f, i) => (
                 <div
                   key={f.id}
-                  onClick={() => selectFirm(f)}
-                  className="px-3 py-2 text-sm hover:bg-muted cursor-pointer transition-colors"
+                  onMouseDown={(e) => { e.preventDefault(); selectFirm(f) }}
+                  onMouseEnter={() => setHighlightedFirm(i)}
+                  className={`px-3 py-2 text-sm cursor-pointer transition-colors ${i === highlightedFirm ? 'bg-muted' : 'hover:bg-muted'
+                    }`}
                 >
                   {f.name}
                 </div>
@@ -116,7 +144,7 @@ export default function PaymentsForm({ firms }) {
           <Popover>
             <PopoverTrigger
               render={
-                <Button variant="outline" className="w-full h-10 rounded-lg justify-start font-normal">
+                <Button disabled={loading} variant="outline" className="w-full h-10 rounded-lg justify-start font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {date ? format(date, 'PP') : 'Pick a date'}
                 </Button>
@@ -138,6 +166,7 @@ export default function PaymentsForm({ firms }) {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
+            disabled={loading}
           />
         </div>
 
@@ -148,6 +177,7 @@ export default function PaymentsForm({ firms }) {
             value={method}
             onValueChange={setMethod}
             className="grid grid-cols-2 gap-2"
+            disabled={loading}
           >
             {['Cash', 'Cheque', 'Bank Transfer', 'Draft'].map((option) => (
               <label
@@ -167,18 +197,18 @@ export default function PaymentsForm({ firms }) {
           <div className="space-y-4 animate-in fade-in slide-in-from-top-1">
             <div className="space-y-1.5">
               <Label>Bank name</Label>
-              <Input className="h-10 rounded-lg" name="bank_name" />
+              <Input className="h-10 rounded-lg" disabled={loading} name="bank_name" />
             </div>
             <div className="space-y-1.5">
               <Label>Cheque / Reference #</Label>
-              <Input className="h-10 rounded-lg" name="cheque_number" />
+              <Input className="h-10 rounded-lg" disabled={loading} name="cheque_number" />
             </div>
           </div>
         )}
 
         <div className="space-y-1.5">
           <Label>Memo</Label>
-          <Input className="h-10 rounded-lg" name="memo" placeholder="Optional note" />
+          <Input className="h-10 rounded-lg" name="memo" disabled={loading} placeholder="Optional note" />
         </div>
 
         {error && <p className="text-red-600 text-xs animate-in fade-in slide-in-from-top-1">{error}</p>}
@@ -209,6 +239,7 @@ export default function PaymentsForm({ firms }) {
             type="button"
             variant="outline"
             className="flex-1 rounded-lg h-10"
+            disabled={loading}
             onClick={() => {
               formRef.current.reset()
               setSelectedFirm(null)
@@ -222,8 +253,15 @@ export default function PaymentsForm({ firms }) {
           >
             Cancel
           </Button>
-          <Button type="submit" className="flex-1 rounded-lg h-10">
-            Save payment
+          <Button type="submit" className="flex-1 rounded-lg h-10" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save payment'
+            )}
           </Button>
         </div>
       </form>

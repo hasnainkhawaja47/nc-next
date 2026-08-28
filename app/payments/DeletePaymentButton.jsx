@@ -1,11 +1,13 @@
 'use client'
-
+import { useRouter } from 'next/navigation'
 import { deletePayment } from './actions'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
 
 export default function DeletePaymentButton({ id }) {
+  const router = useRouter()
+
   async function handleDelete() {
     if (!confirm('Delete this payment?')) return
     const result = await deletePayment(id)
@@ -14,7 +16,7 @@ export default function DeletePaymentButton({ id }) {
       return
     }
     toast.success('Payment deleted')
-    window.location.reload()
+    router.refresh()
   }
 
   return (

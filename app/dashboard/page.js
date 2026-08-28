@@ -116,11 +116,11 @@ export default async function DashboardPage() {
     }))
 
   return (
-    <div className="min-h-screen bg-neutral-50 p-6 md:p-8">
+    <div className="min-h-screen bg-background p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 animate-in fade-in slide-in-from-bottom-2 [animation-duration:400ms] [animation-fill-mode:forwards]">
-          <h1 className="text-xl font-semibold text-neutral-900">Dashboard</h1>
-          <p className="text-sm text-neutral-500">
+          <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
             Overview of Needle Craft's billing and receivables
           </p>
         </div>

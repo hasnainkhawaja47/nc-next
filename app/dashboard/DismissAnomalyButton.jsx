@@ -12,7 +12,7 @@ export default function DismissAnomalyButton({ id }) {
       type="button"
       disabled={isPending}
       onClick={() => startTransition(() => dismissAnomaly(id))}
-      className="rounded p-0.5 text-neutral-400 transition-colors duration-150 hover:bg-neutral-200 hover:text-neutral-700 disabled:opacity-50"
+      className="rounded p-0.5 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground disabled:opacity-50"
       aria-label="Dismiss anomaly"
     >
       <X className="h-3.5 w-3.5" />

@@ -21,36 +21,38 @@ export default function BilledVsCollectedChart({ data }) {
     <div style={{ width: "100%", height: 288 }}>
       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="month"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: "#a3a3a3" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: "#a3a3a3" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
             tickFormatter={(v) => `${v / 1000}k`}
           />
           <Tooltip
             formatter={(v) => fmt(v)}
             contentStyle={{
               borderRadius: 8,
-              border: "1px solid #e5e5e5",
+              border: "1px solid var(--border)",
+              background: "var(--card)",
+              color: "var(--foreground)",
               fontSize: 12,
             }}
           />
           <Legend
             iconType="circle"
             iconSize={8}
-            wrapperStyle={{ fontSize: 12 }}
+            wrapperStyle={{ fontSize: 12, color: "var(--muted-foreground)" }}
           />
           <Bar
             dataKey="billed"
             name="Billed"
-            fill="#171717"
+            fill="var(--foreground)"
             radius={[4, 4, 0, 0]}
             animationDuration={900}
           />

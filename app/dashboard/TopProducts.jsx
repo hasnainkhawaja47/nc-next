@@ -6,7 +6,7 @@ export default function TopProducts({ products, monthLabel, delayMs = 0 }) {
 
   return (
     <div
-      className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md"
+      className="rounded-xl border border-border bg-card p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md"
       style={{
         animationDelay: `${delayMs}ms`,
         animationDuration: "500ms",
@@ -14,8 +14,8 @@ export default function TopProducts({ products, monthLabel, delayMs = 0 }) {
       }}
     >
       <div className="mb-4 flex items-center gap-2">
-        <Package className="h-4 w-4 text-neutral-400" />
-        <h2 className="text-sm font-medium text-neutral-900">
+        <Package className="h-4 w-4 text-muted-foreground" />
+        <h2 className="text-sm font-medium text-foreground">
           Top Products — {monthLabel}
         </h2>
       </div>
@@ -25,12 +25,12 @@ export default function TopProducts({ products, monthLabel, delayMs = 0 }) {
           return (
             <div key={p.name}>
               <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="text-neutral-700">{p.name}</span>
-                <span className="tabular-nums text-neutral-400">{p.units}</span>
+                <span className="text-foreground/80">{p.name}</span>
+                <span className="tabular-nums text-muted-foreground">{p.units}</span>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full rounded-full bg-neutral-900 animate-in fade-in"
+                  className="h-full rounded-full bg-foreground animate-in fade-in"
                   style={{
                     width: `${pct}%`,
                     animationDelay: `${delayMs + 120 + i * 80}ms`,

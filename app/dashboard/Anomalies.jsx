@@ -10,7 +10,7 @@ function fmtDate(d) {
 export default function Anomalies({ items, delayMs = 0 }) {
   return (
     <div
-      className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3"
+      className="rounded-xl border border-border bg-card p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3"
       style={{
         animationDelay: `${delayMs}ms`,
         animationDuration: '500ms',
@@ -19,11 +19,11 @@ export default function Anomalies({ items, delayMs = 0 }) {
     >
       <div className="mb-4 flex items-center gap-2">
         <AlertTriangle className="h-4 w-4 text-amber-500" />
-        <h2 className="text-sm font-medium text-neutral-900">Anomalies</h2>
+        <h2 className="text-sm font-medium text-foreground">Anomalies</h2>
       </div>
       <div className="space-y-3">
         {items.length === 0 && (
-          <p className="text-xs text-neutral-400">No open anomalies</p>
+          <p className="text-xs text-muted-foreground">No open anomalies</p>
         )}
         {items.map((an) => (
           <div
@@ -35,16 +35,16 @@ export default function Anomalies({ items, delayMs = 0 }) {
                 {an.type}
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-neutral-400">
+                <span className="text-xs text-muted-foreground">
                   {fmtDate(an.detected_at)}
                 </span>
                 <DismissAnomalyButton id={an.id} />
               </div>
             </div>
-            <p className="text-xs font-medium text-neutral-800">
+            <p className="text-xs font-medium text-foreground">
               {an.firm_name || '—'}
             </p>
-            <p className="text-xs text-neutral-500">{an.details}</p>
+            <p className="text-xs text-muted-foreground">{an.details}</p>
           </div>
         ))}
       </div>

@@ -8,7 +8,7 @@ import {
     SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { LayoutDashboard, FileText, Wallet, Users, Package, BarChart3, LogOut, Scissors } from 'lucide-react'
-
+import ThemeToggle from '@/components/ThemeToggle'
 const links = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/new-bill', label: 'New Bill', icon: FileText },
@@ -50,7 +50,15 @@ export default function AppSidebar() {
                                 const Icon = link.icon
                                 return (
                                     <SidebarMenuItem key={link.href}>
-                                        <SidebarMenuButton render={<Link href={link.href} />} isActive={pathname === link.href}>
+                                        <SidebarMenuButton
+                                            render={<Link href={link.href} />}
+                                            isActive={pathname === link.href}
+                                            onClick={
+                                                link.href === '/new-bill'
+                                                    ? () => window.dispatchEvent(new Event('reset-new-bill'))
+                                                    : undefined
+                                            }
+                                        >
                                             <Icon />
                                             <span>{link.label}</span>
                                         </SidebarMenuButton>
@@ -64,6 +72,9 @@ export default function AppSidebar() {
 
             <SidebarFooter>
                 <SidebarMenu>
+                    <SidebarMenuItem>
+                        <ThemeToggle />
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton onClick={handleSignOut} className="text-red-500 hover:text-red-600">
                             <LogOut />

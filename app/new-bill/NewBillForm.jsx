@@ -74,7 +74,7 @@ function isRowComplete(row) {
   )
 }
 
-function ProductDropdown({ anchorRef, matches, onSelect, show }) {
+function ProductDropdown({ anchorRef, matches, onSelect, show, highlightedIndex, onHighlight }) {
   const [coords, setCoords] = useState(null)
 
   useEffect(() => {
@@ -93,14 +93,13 @@ function ProductDropdown({ anchorRef, matches, onSelect, show }) {
       style={{ position: 'absolute', top: coords.top, left: coords.left, width: coords.width, zIndex: 1000 }}
       className="bg-background border rounded-md shadow-md max-h-48 overflow-auto"
     >
-      {matches.map((p) => (
+      {matches.map((p, i) => (
         <div
           key={p.id}
-          onMouseDown={(e) => {
-            e.preventDefault()
-            onSelect(p)
-          }}
-          className="px-3 py-1.5 text-sm hover:bg-muted cursor-pointer flex justify-between transition-colors"
+          onMouseDown={(e) => { e.preventDefault(); onSelect(p) }}
+          onMouseEnter={() => onHighlight(i)}
+          className={`px-3 py-1.5 text-sm cursor-pointer flex justify-between transition-colors ${i === highlightedIndex ? 'bg-muted' : 'hover:bg-muted'
+            }`}
         >
           <span><strong>{p.code}</strong> — {p.name}</span>
           <span className="text-muted-foreground">Rs {p.standard_price}</span>
@@ -138,6 +137,7 @@ function ItemRow({
   const inputRef = useRef(null)
   const [query, setQuery] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
+  const [highlightedProduct, setHighlightedProduct] = useState(-1)
   function handleCellChange(field, value) {
     const currentRow = watch(`items.${index}`)
 
@@ -174,7 +174,7 @@ function ItemRow({
             rhfOnChange(e)
             setQuery(e.target.value)
             setShowDropdown(true)
-
+            setHighlightedProduct(-1)
             const currentRow = watch(`items.${index}`)
 
             const nextRow = {
@@ -188,6 +188,31 @@ function ItemRow({
           }}
           onFocus={() => setShowDropdown(true)}
           onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+          onKeyDown={(e) => {
+            if (!showDropdown || matches.length === 0) return
+            if (e.key === 'ArrowDown') {
+              e.preventDefault()
+              setHighlightedProduct((i) => (i + 1) % matches.length)
+            } else if (e.key === 'ArrowUp') {
+              e.preventDefault()
+              setHighlightedProduct((i) => (i <= 0 ? matches.length - 1 : i - 1))
+            } else if (e.key === 'Tab' && highlightedProduct >= 0) {
+              const p = matches[highlightedProduct]
+              onSelectProduct(index, p)
+              setQuery('')
+              setShowDropdown(false)
+              setHighlightedProduct(-1)
+            } else if (e.key === 'Enter' && highlightedProduct >= 0) {
+              e.preventDefault()
+              const p = matches[highlightedProduct]
+              onSelectProduct(index, p)
+              setQuery('')
+              setShowDropdown(false)
+              setHighlightedProduct(-1)
+            } else if (e.key === 'Escape') {
+              setShowDropdown(false)
+            }
+          }}
           placeholder="Code or name..."
           autoComplete="off"
         />
@@ -195,10 +220,13 @@ function ItemRow({
           anchorRef={inputRef}
           matches={matches}
           show={showDropdown}
+          highlightedIndex={highlightedProduct}
+          onHighlight={setHighlightedProduct}
           onSelect={(p) => {
             onSelectProduct(index, p)
             setQuery('')
             setShowDropdown(false)
+            setHighlightedProduct(-1)
           }}
         />
       </td>
@@ -262,6 +290,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
   const [prevBalance, setPrevBalance] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const clientInputRef = useRef(null)
+  const [highlightedClient, setHighlightedClient] = useState(-1)
 
   function buildDefaults() {
     if (initialBill?.bill) {
@@ -362,7 +391,13 @@ export default function NewBillForm({ firms, products, initialBill }) {
       setValue(`items.${index}.price`, product.standard_price)
     }
   }
-
+  useEffect(() => {
+    function handleReset() {
+      startNewBill()
+    }
+    window.addEventListener('reset-new-bill', handleReset)
+    return () => window.removeEventListener('reset-new-bill', handleReset)
+  }, [])
   function startNewBill() {
     setSubmitted(false)
     reset({
@@ -458,6 +493,24 @@ export default function NewBillForm({ firms, products, initialBill }) {
                   setShowClientDropdown(true)
                   setValue('firm_id', null, { shouldValidate: true })
                   setPrevBalance(null)
+                  setHighlightedClient(-1)
+                }}
+                onKeyDown={(e) => {
+                  if (!showClientDropdown || filteredFirms.length === 0) return
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault()
+                    setHighlightedClient((i) => (i + 1) % filteredFirms.length)
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault()
+                    setHighlightedClient((i) => (i <= 0 ? filteredFirms.length - 1 : i - 1))
+                  } else if (e.key === 'Tab' && highlightedClient >= 0) {
+                    selectFirm(filteredFirms[highlightedClient])
+                  } else if (e.key === 'Enter' && highlightedClient >= 0) {
+                    e.preventDefault()
+                    selectFirm(filteredFirms[highlightedClient])
+                  } else if (e.key === 'Escape') {
+                    setShowClientDropdown(false)
+                  }
                 }}
                 onFocus={() => setShowClientDropdown(true)}
                 onBlur={() => setTimeout(() => setShowClientDropdown(false), 150)}
@@ -466,11 +519,13 @@ export default function NewBillForm({ firms, products, initialBill }) {
               />
               {showClientDropdown && filteredFirms.length > 0 && (
                 <div className="absolute z-20 bg-background border rounded-md shadow-md w-full mt-1 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1">
-                  {filteredFirms.map((f) => (
+                  {filteredFirms.map((f, i) => (
                     <div
                       key={f.id}
                       onMouseDown={(e) => { e.preventDefault(); selectFirm(f) }}
-                      className="px-3 py-1.5 text-sm hover:bg-muted cursor-pointer transition-colors"
+                      onMouseEnter={() => setHighlightedClient(i)}
+                      className={`px-3 py-1.5 text-sm cursor-pointer transition-colors ${i === highlightedClient ? 'bg-muted' : 'hover:bg-muted'
+                        }`}
                     >
                       {f.name}
                     </div>

@@ -15,7 +15,7 @@ export default function StatCard({
 
   return (
     <div
-      className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md"
+      className="rounded-xl border border-border bg-card p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 transition-shadow duration-200 hover:shadow-md"
       style={{
         animationDelay: `${index * 80}ms`,
         animationDuration: "500ms",
@@ -24,13 +24,13 @@ export default function StatCard({
     >
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-neutral-500">{label}</p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight text-neutral-900">
+          <p className="text-sm text-muted-foreground">{label}</p>
+          <p className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight text-foreground">
             {formatValue ? formatValue(animated) : animated.toLocaleString()}
           </p>
         </div>
-        <div className="rounded-lg bg-neutral-900/5 p-2">
-          <Icon className="h-4 w-4 text-neutral-500" />
+        <div className="rounded-lg bg-foreground/5 p-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
         </div>
       </div>
       {delta !== undefined && (
@@ -43,7 +43,7 @@ export default function StatCard({
           <span className={deltaGood ? "text-emerald-600" : "text-red-500"}>
             {delta}
           </span>
-          <span className="text-neutral-400">vs last month</span>
+          <span className="text-muted-foreground">vs last month</span>
         </div>
       )}
     </div>

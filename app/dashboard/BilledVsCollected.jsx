@@ -51,10 +51,10 @@ export default async function BilledVsCollected() {
   }))
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 [animation-duration:500ms] [animation-fill-mode:forwards]">
+    <div className="rounded-xl border border-border bg-card p-5 shadow-sm animate-in fade-in slide-in-from-bottom-3 [animation-duration:500ms] [animation-fill-mode:forwards]">
       <div className="mb-4 flex items-center gap-2">
-        <BarChart3 className="h-4 w-4 text-neutral-400" />
-        <h2 className="text-sm font-medium text-neutral-900">
+        <BarChart3 className="h-4 w-4 text-muted-foreground" />
+        <h2 className="text-sm font-medium text-foreground">
           Billed vs Collected
         </h2>
       </div>
