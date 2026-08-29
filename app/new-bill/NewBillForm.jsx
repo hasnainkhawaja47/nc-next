@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback, memo } from 'react'
 import { createPortal } from 'react-dom'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ToWords } from 'to-words'
@@ -74,7 +74,7 @@ function isRowComplete(row) {
   )
 }
 
-function ProductDropdown({ anchorRef, matches, onSelect, show, highlightedIndex, onHighlight }) {
+function ProductDropdown({ anchorRef, matches, onSelect, show }) {
   const [coords, setCoords] = useState(null)
 
   useEffect(() => {
@@ -96,10 +96,11 @@ function ProductDropdown({ anchorRef, matches, onSelect, show, highlightedIndex,
       {matches.map((p, i) => (
         <div
           key={p.id}
-          onMouseDown={(e) => { e.preventDefault(); onSelect(p) }}
-          onMouseEnter={() => onHighlight(i)}
-          className={`px-3 py-1.5 text-sm cursor-pointer flex justify-between transition-colors ${i === highlightedIndex ? 'bg-muted' : 'hover:bg-muted'
-            }`}
+          onMouseDown={(e) => {
+            e.preventDefault()
+            onSelect(p)
+          }}
+          className="px-3 py-1.5 text-sm hover:bg-muted cursor-pointer flex justify-between transition-colors"
         >
           <span><strong>{p.code}</strong> — {p.name}</span>
           <span className="text-muted-foreground">Rs {p.standard_price}</span>
@@ -122,7 +123,7 @@ const Cell = forwardRef(function Cell({ className = '', numeric = false, ...prop
   )
 })
 
-function ItemRow({
+const ItemRow = memo(function ItemRow({
   index,
   register,
   watch,
@@ -137,7 +138,6 @@ function ItemRow({
   const inputRef = useRef(null)
   const [query, setQuery] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
-  const [highlightedProduct, setHighlightedProduct] = useState(-1)
   function handleCellChange(field, value) {
     const currentRow = watch(`items.${index}`)
 
@@ -161,6 +161,19 @@ function ItemRow({
       ? products.filter((p) => p.code.toLowerCase().startsWith(query.toLowerCase()) || p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
       : []
 
+  function handleSelectProduct(p) {
+    onSelectProduct(index, p)
+    setQuery('')
+    setShowDropdown(false)
+  }
+
+  const productNav = useComboboxNav({
+    show: showDropdown,
+    items: matches,
+    onSelect: handleSelectProduct,
+    onClose: () => setShowDropdown(false),
+  })
+
   const { ref: rhfRef, onChange: rhfOnChange, ...rest } = register(`items.${index}.product_name`)
 
   return (
@@ -174,7 +187,7 @@ function ItemRow({
             rhfOnChange(e)
             setQuery(e.target.value)
             setShowDropdown(true)
-            setHighlightedProduct(-1)
+
             const currentRow = watch(`items.${index}`)
 
             const nextRow = {
@@ -186,6 +199,7 @@ function ItemRow({
               append({ ...emptyRow }, { shouldFocus: false })
             }
           }}
+          onKeyDown={productNav.handleKeyDown}
           onFocus={() => setShowDropdown(true)}
           onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
           onKeyDown={(e) => {
@@ -220,13 +234,10 @@ function ItemRow({
           anchorRef={inputRef}
           matches={matches}
           show={showDropdown}
-          highlightedIndex={highlightedProduct}
-          onHighlight={setHighlightedProduct}
           onSelect={(p) => {
             onSelectProduct(index, p)
             setQuery('')
             setShowDropdown(false)
-            setHighlightedProduct(-1)
           }}
         />
       </td>
@@ -277,6 +288,40 @@ function ItemRow({
         )}
       </td>
     </tr>
+  )
+})
+
+// Isolated so the grand-total math (which must recompute on every keystroke
+// in every row) only re-renders this small block, not the whole form and
+// every ItemRow along with it.
+function BillTotals({ control, prevBalance }) {
+  const items = useWatch({ control, name: 'items' })
+  const biltyCharges = useWatch({ control, name: 'bilty_charges' })
+  const packagingCharges = useWatch({ control, name: 'packaging_charges' })
+
+  const itemsTotal = (items || []).reduce(
+    (s, i) => s + (Number(i.quantity) || 0) * (Number(i.price) || 0),
+    0
+  )
+  const grandTotal = itemsTotal + Number(biltyCharges || 0) + Number(packagingCharges || 0)
+  const amountWords = grandTotal > 0 ? toWords.convert(grandTotal, { currency: true }) : ''
+  const newBalance = prevBalance != null ? prevBalance + grandTotal : null
+
+  return (
+    <div className="text-right">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Grand total</div>
+      <div className="font-mono tabular-nums text-2xl font-semibold tracking-tight">
+        <span className="text-sm text-muted-foreground font-sans mr-1">Rs</span>
+        {grandTotal.toLocaleString()}
+      </div>
+      {amountWords && <div className="text-[11px] text-muted-foreground mt-0.5">{amountWords}</div>}
+      {newBalance != null && (
+        <div className="text-xs mt-1">
+          New balance:{' '}
+          <span className="text-red-600 font-medium">Rs {newBalance.toLocaleString()}</span>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -343,11 +388,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
 
-  const watchedBilty = watch('bilty_charges') || 0
-  const watchedPkg = watch('packaging_charges') || 0
   const watchedIsCredit = watch('is_credit')
-
-
 
   useEffect(() => {
     if (initialBill?.bill) {
@@ -362,14 +403,6 @@ export default function NewBillForm({ firms, products, initialBill }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const itemsTotal = (watch('items') || []).reduce(
-    (s, i) => s + (Number(i.quantity) || 0) * (Number(i.price) || 0),
-    0
-  )
-  const grandTotal = itemsTotal + Number(watchedBilty) + Number(watchedPkg)
-  const amountWords = grandTotal > 0 ? toWords.convert(grandTotal, { currency: true }) : ''
-  const newBalance = prevBalance != null ? prevBalance + grandTotal : null
-
   const filteredFirms =
     clientQuery.length > 0 ? firms.filter((f) => f.name.toLowerCase().includes(clientQuery.toLowerCase())).slice(0, 8) : []
 
@@ -381,7 +414,14 @@ export default function NewBillForm({ firms, products, initialBill }) {
     setPrevBalance(bal)
   }
 
-  function selectProduct(index, product) {
+  const clientNav = useComboboxNav({
+    show: showClientDropdown,
+    items: filteredFirms,
+    onSelect: selectFirm,
+    onClose: () => setShowClientDropdown(false),
+  })
+
+  const selectProduct = useCallback((index, product) => {
     setValue(`items.${index}.product_name`, product.name, { shouldValidate: true })
     setValue(`items.${index}.product_id`, product.id)
 
@@ -391,13 +431,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
       setValue(`items.${index}.price`, product.standard_price)
     }
   }
-  useEffect(() => {
-    function handleReset() {
-      startNewBill()
-    }
-    window.addEventListener('reset-new-bill', handleReset)
-    return () => window.removeEventListener('reset-new-bill', handleReset)
-  }, [])
+
   function startNewBill() {
     setSubmitted(false)
     reset({
@@ -493,25 +527,8 @@ export default function NewBillForm({ firms, products, initialBill }) {
                   setShowClientDropdown(true)
                   setValue('firm_id', null, { shouldValidate: true })
                   setPrevBalance(null)
-                  setHighlightedClient(-1)
                 }}
-                onKeyDown={(e) => {
-                  if (!showClientDropdown || filteredFirms.length === 0) return
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault()
-                    setHighlightedClient((i) => (i + 1) % filteredFirms.length)
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault()
-                    setHighlightedClient((i) => (i <= 0 ? filteredFirms.length - 1 : i - 1))
-                  } else if (e.key === 'Tab' && highlightedClient >= 0) {
-                    selectFirm(filteredFirms[highlightedClient])
-                  } else if (e.key === 'Enter' && highlightedClient >= 0) {
-                    e.preventDefault()
-                    selectFirm(filteredFirms[highlightedClient])
-                  } else if (e.key === 'Escape') {
-                    setShowClientDropdown(false)
-                  }
-                }}
+                onKeyDown={clientNav.handleKeyDown}
                 onFocus={() => setShowClientDropdown(true)}
                 onBlur={() => setTimeout(() => setShowClientDropdown(false), 150)}
                 placeholder="Type to search..."
@@ -523,9 +540,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
                     <div
                       key={f.id}
                       onMouseDown={(e) => { e.preventDefault(); selectFirm(f) }}
-                      onMouseEnter={() => setHighlightedClient(i)}
-                      className={`px-3 py-1.5 text-sm cursor-pointer transition-colors ${i === highlightedClient ? 'bg-muted' : 'hover:bg-muted'
-                        }`}
+                      className="px-3 py-1.5 text-sm hover:bg-muted cursor-pointer transition-colors"
                     >
                       {f.name}
                     </div>
@@ -627,20 +642,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
             </div>
 
             <div className="flex items-center gap-5 ml-auto">
-              <div className="text-right">
-                <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Grand total</div>
-                <div className="font-mono tabular-nums text-2xl font-semibold tracking-tight">
-                  <span className="text-sm text-muted-foreground font-sans mr-1">Rs</span>
-                  {grandTotal.toLocaleString()}
-                </div>
-                {amountWords && <div className="text-[11px] text-muted-foreground mt-0.5">{amountWords}</div>}
-                {newBalance != null && (
-                  <div className="text-xs mt-1">
-                    New balance:{' '}
-                    <span className="text-red-600 font-medium">Rs {newBalance.toLocaleString()}</span>
-                  </div>
-                )}
-              </div>
+              <BillTotals control={control} prevBalance={prevBalance} />
               <Button type="submit" size="lg" disabled={!isValid || isSubmitting}>
                 {isSubmitting ? 'Saving...' : editingBillId ? 'Update bill' : 'Save bill'}
               </Button>
