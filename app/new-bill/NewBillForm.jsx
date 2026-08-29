@@ -214,19 +214,13 @@ const ItemRow = memo(function ItemRow({
   const [showDropdown, setShowDropdown] = useState(false)
 
   function handleCellChange(field, value) {
-    const currentRow = watch(`items.${index}`)
-
-    const nextRow = {
-      ...currentRow,
-      [field]: value,
-    }
-
-    setValue(`items.${index}.${field}`, value)
-
-    if (isLastRow && isRowComplete(nextRow)) {
-      append({ ...emptyRow }, { shouldFocus: false })
-    }
+  const currentRow = watch(`items.${index}`)
+  const nextRow = { ...currentRow, [field]: value }
+  setValue(`items.${index}.${field}`, value, { shouldValidate: true })
+  if (isLastRow && isRowComplete(nextRow)) {
+    append({ ...emptyRow }, { shouldFocus: false })
   }
+}
 
   // useWatch (not the plain `watch()` call) so this row actually
   // re-subscribes and re-renders when its own quantity/price change. Plain
