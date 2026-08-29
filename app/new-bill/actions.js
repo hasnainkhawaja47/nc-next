@@ -93,8 +93,15 @@ export async function getPreviousBalance(firmId) {
 
 export async function getBillForEdit(id) {
   const supabase = await createClient()
-  const { data: bill } = await supabase.from('bills').select('*').eq('id', id).single()
-  const { data: items } = await supabase.from('bill_items').select('*').eq('bill_id', id)
+  const { data: bill } = await supabase
+    .from('bills')
+    .select('id, firm_id, bill_date, bilty_no, do_no, bilty_charges, packaging_charges, is_credit, total_amount')
+    .eq('id', id)
+    .single()
+  const { data: items } = await supabase
+    .from('bill_items')
+    .select('product_name, colour, size, quantity, price, product_id')
+    .eq('bill_id', id)
   return { bill, items: items || [] }
 }
 

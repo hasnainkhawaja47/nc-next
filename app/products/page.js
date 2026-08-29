@@ -5,7 +5,7 @@ export default async function ProductsPage() {
   const supabase = await createClient()
 
   const [{ data: products }, { data: soldRows }, { data: soldYtdRows }] = await Promise.all([
-    supabase.from('products').select('*').order('code'),
+    supabase.from('products').select('id, code, name, standard_price, cost_price').order('code'),
     supabase.rpc('get_product_units_sold'),
     supabase.rpc('get_product_units_sold_ytd'),
   ])

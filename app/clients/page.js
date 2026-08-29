@@ -6,7 +6,7 @@ export default async function ClientsPage() {
   const supabase = await createClient()
 
   const [{ data: firms }, { data: balances }] = await Promise.all([
-    supabase.from('firms').select('*').order('name'),
+    supabase.from('firms').select('id, name').order('name'),
     supabase.rpc('get_firm_balances'),
   ])
 

@@ -124,9 +124,20 @@ export async function getBillDetails(billId, isArchive) {
   const billTable = isArchive ? 'archive_bills' : 'bills'
   const itemsTable = isArchive ? 'archive_bill_items' : 'bill_items'
 
+  // archive_bill_items uses `archive_bill_id` as its foreign key, not
+  // `bill_id` like the live bill_items table does.
+  const itemsFkColumn = isArchive ? 'archive_bill_id' : 'bill_id'
+
   const [{ data: bill }, { data: items }] = await Promise.all([
-    supabase.from(billTable).select('*').eq('id', billId).single(),
-    supabase.from(itemsTable).select('*').eq('bill_id', billId),
+    supabase
+      .from(billTable)
+      .select('bill_date, bilty_no, do_no, is_credit, bilty_charges, packaging_charges, total_amount')
+      .eq('id', billId)
+      .single(),
+    supabase
+      .from(itemsTable)
+      .select('id, product_name, colour, size, quantity, price, total')
+      .eq(itemsFkColumn, billId),
   ])
 
   return { bill, items: items ?? [] }

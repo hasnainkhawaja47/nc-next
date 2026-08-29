@@ -80,7 +80,11 @@ export async function updatePayment(id, formData) {
 
 export async function getPayment(id) {
   const supabase = await createClient()
-  const { data, error } = await supabase.from('payments').select('*').eq('id', id).single()
+  const { data, error } = await supabase
+    .from('payments')
+    .select('firm_id, payment_date, amount, method, bank_name, cheque_number, memo')
+    .eq('id', id)
+    .single()
   if (error) return { error: error.message }
   return { payment: data }
 }
