@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback, memo } from 'react'
 import { createPortal } from 'react-dom'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ToWords } from 'to-words'
@@ -21,12 +21,19 @@ import { forwardRef } from 'react'
 
 const toWords = new ToWords({ localeCode: 'en-IN' })
 
+// Strips everything but digits and caps the digit count. Used for every
+// numeric field's onChange, because `maxLength` is silently ignored by
+// browsers on <input type="number"> — it only works on type="text".
+function sanitizeDigits(value, maxDigits) {
+  return (value || '').replace(/[^\d]/g, '').slice(0, maxDigits)
+}
+
 const itemSchema = z.object({
-  product_name: z.string(),
-  colour: z.string().optional(),
-  size: z.string().optional(),
-  quantity: z.coerce.number().min(0),
-  price: z.coerce.number().min(0),
+  product_name: z.string().max(40, 'Max 40 characters'),
+  colour: z.string().max(15, 'Max 15 characters'),
+  size: z.string().max(10, 'Max 10 characters'),
+  quantity: z.coerce.number().min(0).max(50000, 'Max 50,000'),
+  price: z.coerce.number().min(0).max(999999, 'Max 999,999'),
   product_id: z.number().nullable().optional(),
 })
 
@@ -37,10 +44,10 @@ const schema = z
       .nullable()
       .refine((v) => v != null, 'Please select a client.'),
     bill_date: z.string().min(1, 'Date is required.'),
-    bilty_no: z.string().optional(),
-    do_no: z.string().optional(),
-    bilty_charges: z.coerce.number().min(0).default(0),
-    packaging_charges: z.coerce.number().min(0).default(0),
+    bilty_no: z.string().max(15, 'Max 15 characters').optional(),
+    do_no: z.string().min(1, 'Required').max(5, 'Max 5 digits').regex(/^\d*$/, 'Numeric only'),
+    bilty_charges: z.coerce.number().min(0).max(9999999, 'Max 7 digits').default(0),
+    packaging_charges: z.coerce.number().min(0).max(9999999, 'Max 7 digits').default(0),
     is_credit: z.boolean().default(true),
     items: z.array(itemSchema),
   })
@@ -48,11 +55,35 @@ const schema = z
     const valid = data.items.filter((i) => i.product_name?.trim() && i.quantity > 0 && i.price > 0)
     if (valid.length === 0) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['items'],
         message: 'Add at least one item with a product, quantity, and price.',
       })
     }
+
+    // Once a row has any data in it, all 5 item fields become required for
+    // that row. The trailing auto-appended blank row is naturally exempt
+    // since it has nothing filled in yet.
+    data.items.forEach((item, index) => {
+      const anyFilled =
+        Boolean(item.product_name?.trim()) ||
+        Boolean(item.colour?.trim()) ||
+        Boolean(item.size?.trim()) ||
+        item.quantity > 0 ||
+        item.price > 0
+      if (!anyFilled) return
+
+      if (!item.product_name?.trim())
+        ctx.addIssue({ code: 'custom', path: ['items', index, 'product_name'], message: 'Required' })
+      if (!item.colour?.trim())
+        ctx.addIssue({ code: 'custom', path: ['items', index, 'colour'], message: 'Required' })
+      if (!item.size?.trim())
+        ctx.addIssue({ code: 'custom', path: ['items', index, 'size'], message: 'Required' })
+      if (!(item.quantity > 0))
+        ctx.addIssue({ code: 'custom', path: ['items', index, 'quantity'], message: 'Required' })
+      if (!(item.price > 0))
+        ctx.addIssue({ code: 'custom', path: ['items', index, 'price'], message: 'Required' })
+    })
   })
 
 const emptyRow = {
@@ -74,7 +105,37 @@ function isRowComplete(row) {
   )
 }
 
-function ProductDropdown({ anchorRef, matches, onSelect, show }) {
+// Shared arrow-key / Tab / Enter / Escape combobox navigation, used by both
+// the client picker and the product picker below. Having this in one place
+// means both pickers behave identically and a future change only needs to
+// happen once, instead of two copies quietly drifting apart.
+function useComboboxNav({ show, items, onSelect, onClose }) {
+  const [highlightedIndex, setHighlightedIndex] = useState(-1)
+
+  function handleKeyDown(e) {
+    if (!show || items.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlightedIndex((i) => (i + 1) % items.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlightedIndex((i) => (i <= 0 ? items.length - 1 : i - 1))
+    } else if (e.key === 'Tab' && highlightedIndex >= 0) {
+      // No preventDefault here — Tab should still move focus onward after
+      // committing the highlighted selection, not get trapped.
+      onSelect(items[highlightedIndex])
+    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+      e.preventDefault()
+      onSelect(items[highlightedIndex])
+    } else if (e.key === 'Escape') {
+      onClose?.()
+    }
+  }
+
+  return { highlightedIndex, setHighlightedIndex, handleKeyDown }
+}
+
+function ProductDropdown({ anchorRef, matches, onSelect, show, highlightedIndex, onHighlight }) {
   const [coords, setCoords] = useState(null)
 
   useEffect(() => {
@@ -93,14 +154,16 @@ function ProductDropdown({ anchorRef, matches, onSelect, show }) {
       style={{ position: 'absolute', top: coords.top, left: coords.left, width: coords.width, zIndex: 1000 }}
       className="bg-background border rounded-md shadow-md max-h-48 overflow-auto"
     >
-      {matches.map((p) => (
+      {matches.map((p, i) => (
         <div
           key={p.id}
           onMouseDown={(e) => {
             e.preventDefault()
             onSelect(p)
           }}
-          className="px-3 py-1.5 text-sm hover:bg-muted cursor-pointer flex justify-between transition-colors"
+          onMouseEnter={() => onHighlight(i)}
+          className={`px-3 py-1.5 text-sm cursor-pointer flex justify-between transition-colors ${i === highlightedIndex ? 'bg-muted' : 'hover:bg-muted'
+            }`}
         >
           <span><strong>{p.code}</strong> — {p.name}</span>
           <span className="text-muted-foreground">Rs {p.standard_price}</span>
@@ -111,23 +174,34 @@ function ProductDropdown({ anchorRef, matches, onSelect, show }) {
   )
 }
 
-// Quiet, borderless-until-focus cell input for the line-items table
-const Cell = forwardRef(function Cell({ className = '', numeric = false, ...props }, ref) {
+// Quiet, borderless-until-focus cell input for the line-items table.
+// `error` swaps the transparent border for a red one when this cell has a
+// validation error that should currently be shown.
+const Cell = forwardRef(function Cell({ className = '', numeric = false, error = false, ...props }, ref) {
   return (
     <input
       ref={ref}
       {...props}
-      className={`w-full bg-transparent border border-transparent rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-muted focus:outline-none focus:bg-background focus:border-ring ${numeric ? 'text-right tabular-nums font-mono' : ''
-        } ${className}`}
+      className={`w-full bg-transparent border rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-muted focus:outline-none focus:bg-background focus:border-ring ${error ? 'border-red-500' : 'border-transparent'
+        } ${numeric ? 'text-right tabular-nums font-mono' : ''} ${className}`}
     />
   )
 })
 
-function ItemRow({
+function CellError({ message }) {
+  if (!message) return null
+  return <p className="text-red-600 text-[10px] mt-0.5 px-2.5">{message}</p>
+}
+
+const ItemRow = memo(function ItemRow({
   index,
   register,
   watch,
   setValue,
+  control,
+  rowErrors,
+  rowTouched,
+  submitted,
   products,
   onSelectProduct,
   onRemove,
@@ -138,6 +212,7 @@ function ItemRow({
   const inputRef = useRef(null)
   const [query, setQuery] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
+
   function handleCellChange(field, value) {
     const currentRow = watch(`items.${index}`)
 
@@ -152,8 +227,17 @@ function ItemRow({
       append({ ...emptyRow }, { shouldFocus: false })
     }
   }
-  const quantity = Number(watch(`items.${index}.quantity`)) || 0
-  const price = Number(watch(`items.${index}.price`)) || 0
+
+  // useWatch (not the plain `watch()` call) so this row actually
+  // re-subscribes and re-renders when its own quantity/price change. Plain
+  // watch() inside a memoized component's render body doesn't trigger a
+  // re-render on its own — it just reads whatever the value happened to be
+  // at the last render the row already had for other reasons. That's why
+  // the row total was freezing while the grand total (which does use
+  // useWatch, in BillTotals) kept updating correctly.
+  const rowValues = useWatch({ control, name: `items.${index}` })
+  const quantity = Number(rowValues?.quantity) || 0
+  const price = Number(rowValues?.price) || 0
   const total = quantity * price
 
   const matches =
@@ -161,19 +245,35 @@ function ItemRow({
       ? products.filter((p) => p.code.toLowerCase().startsWith(query.toLowerCase()) || p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
       : []
 
-  const { ref: rhfRef, onChange: rhfOnChange, ...rest } = register(`items.${index}.product_name`)
+  function handleSelectProduct(p) {
+    onSelectProduct(index, p)
+    setQuery('')
+    setShowDropdown(false)
+  }
+
+  const productNav = useComboboxNav({
+    show: showDropdown,
+    items: matches,
+    onSelect: handleSelectProduct,
+    onClose: () => setShowDropdown(false),
+  })
+
+  const { ref: rhfRef, onBlur: rhfOnBlur, onChange: rhfOnChange, ...rest } = register(`items.${index}.product_name`)
 
   return (
     <tr className="border-b last:border-b-0">
-      <td className="w-9 text-center text-xs text-muted-foreground font-mono">{index + 1}</td>
-      <td className="relative">
+      <td className="w-9 text-center text-xs text-muted-foreground font-mono align-top pt-1.5">{index + 1}</td>
+      <td className="relative align-top">
         <Cell
           {...rest}
           ref={(el) => { rhfRef(el); inputRef.current = el }}
+          maxLength={40}
+          error={(submitted || rowTouched?.product_name) && !!rowErrors?.product_name}
           onChange={(e) => {
             rhfOnChange(e)
             setQuery(e.target.value)
             setShowDropdown(true)
+            productNav.setHighlightedIndex(-1)
 
             const currentRow = watch(`items.${index}`)
 
@@ -186,58 +286,91 @@ function ItemRow({
               append({ ...emptyRow }, { shouldFocus: false })
             }
           }}
+          onKeyDown={productNav.handleKeyDown}
           onFocus={() => setShowDropdown(true)}
-          onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+          onBlur={(e) => {
+            rhfOnBlur(e)
+            setTimeout(() => setShowDropdown(false), 150)
+          }}
           placeholder="Code or name..."
           autoComplete="off"
         />
+        <CellError message={(submitted || rowTouched?.product_name) && rowErrors?.product_name?.message} />
         <ProductDropdown
           anchorRef={inputRef}
           matches={matches}
           show={showDropdown}
-          onSelect={(p) => {
-            onSelectProduct(index, p)
-            setQuery('')
-            setShowDropdown(false)
-          }}
+          highlightedIndex={productNav.highlightedIndex}
+          onHighlight={productNav.setHighlightedIndex}
+          onSelect={handleSelectProduct}
         />
       </td>
-      <td className="w-24">
+      <td className="w-24 align-top">
         <Cell
           {...register(`items.${index}.colour`)}
           onChange={(e) => handleCellChange('colour', e.target.value)}
+          maxLength={15}
+          error={(submitted || rowTouched?.colour) && !!rowErrors?.colour}
         />
+        <CellError message={(submitted || rowTouched?.colour) && rowErrors?.colour?.message} />
       </td>
-      <td className="w-20">
+      <td className="w-20 align-top">
         <Cell
           {...register(`items.${index}.size`)}
           onChange={(e) => handleCellChange('size', e.target.value)}
+          maxLength={10}
+          error={(submitted || rowTouched?.size) && !!rowErrors?.size}
         />
+        <CellError message={(submitted || rowTouched?.size) && rowErrors?.size?.message} />
       </td>
-      <td className="w-20">
+      <td className="w-20 align-top">
         <Cell
           numeric
           type="number"
           placeholder="0"
-          {...register(`items.${index}.quantity`, { valueAsNumber: true })}
-          onChange={(e) => handleCellChange('quantity', e.target.value)}
+          error={(submitted || rowTouched?.quantity) && !!rowErrors?.quantity}
+          {...(() => {
+            const { ref, onChange, ...r } = register(`items.${index}.quantity`, { valueAsNumber: true })
+            return {
+              ref,
+              ...r,
+              onChange: (e) => {
+                e.target.value = sanitizeDigits(e.target.value, 5) // cap 50,000 → 5 digits
+                onChange(e) // RHF coercion (valueAsNumber)
+                handleCellChange('quantity', Number(e.target.value) || 0)
+              },
+            }
+          })()}
         />
+        <CellError message={(submitted || rowTouched?.quantity) && rowErrors?.quantity?.message} />
       </td>
-      <td className="w-24">
+      <td className="w-24 align-top">
         <Cell
           numeric
           type="number"
           placeholder="0"
-          {...register(`items.${index}.price`, { valueAsNumber: true })}
-          onChange={(e) => handleCellChange('price', e.target.value)}
+          error={(submitted || rowTouched?.price) && !!rowErrors?.price}
+          {...(() => {
+            const { ref, onChange, ...r } = register(`items.${index}.price`, { valueAsNumber: true })
+            return {
+              ref,
+              ...r,
+              onChange: (e) => {
+                e.target.value = sanitizeDigits(e.target.value, 6) // cap 999,999 → 6 digits
+                onChange(e)
+                handleCellChange('price', Number(e.target.value) || 0)
+              },
+            }
+          })()}
         />
+        <CellError message={(submitted || rowTouched?.price) && rowErrors?.price?.message} />
       </td>
-      <td className="w-28 text-right pr-2.5">
+      <td className="w-28 text-right pr-2.5 align-top pt-1.5">
         <span className={`text-sm font-mono tabular-nums ${total > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
           {total > 0 ? total.toLocaleString() : '—'}
         </span>
       </td>
-      <td className="w-9 text-center">
+      <td className="w-9 text-center align-top pt-1">
         {canRemove && (
           <button
             type="button"
@@ -250,13 +383,47 @@ function ItemRow({
       </td>
     </tr>
   )
+})
+
+// Isolated so the grand-total math (which must recompute on every keystroke
+// in every row) only re-renders this small block, not the whole form and
+// every ItemRow along with it.
+function BillTotals({ control, prevBalance }) {
+  const items = useWatch({ control, name: 'items' })
+  const biltyCharges = useWatch({ control, name: 'bilty_charges' })
+  const packagingCharges = useWatch({ control, name: 'packaging_charges' })
+
+  const itemsTotal = (items || []).reduce(
+    (s, i) => s + (Number(i.quantity) || 0) * (Number(i.price) || 0),
+    0
+  )
+  const grandTotal = itemsTotal + Number(biltyCharges || 0) + Number(packagingCharges || 0)
+  const amountWords = grandTotal > 0 ? toWords.convert(grandTotal, { currency: true }) : ''
+  const newBalance = prevBalance != null ? prevBalance + grandTotal : null
+
+  return (
+    <div className="text-right">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Grand total</div>
+      <div className="font-mono tabular-nums text-2xl font-semibold tracking-tight">
+        <span className="text-sm text-muted-foreground font-sans mr-1">Rs</span>
+        {grandTotal.toLocaleString()}
+      </div>
+      {amountWords && <div className="text-[11px] text-muted-foreground mt-0.5">{amountWords}</div>}
+      {newBalance != null && (
+        <div className="text-xs mt-1">
+          New balance:{' '}
+          <span className="text-red-600 font-medium">Rs {newBalance.toLocaleString()}</span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function NewBillForm({ firms, products, initialBill }) {
   const router = useRouter()
   const { addActivity, updateActivity } = useActivity()
   const editingBillId = initialBill?.bill?.id || null
-
+  const [clientTouched, setClientTouched] = useState(false)
   const [clientQuery, setClientQuery] = useState('')
   const [showClientDropdown, setShowClientDropdown] = useState(false)
   const [prevBalance, setPrevBalance] = useState(null)
@@ -305,7 +472,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
     watch,
     setValue,
     reset,
-    formState: { errors, isSubmitting, isValid },
+    formState: { errors, isSubmitting, isValid, touchedFields },
   } = useForm({
     resolver: zodResolver(schema),
     mode: 'onChange',
@@ -314,13 +481,16 @@ export default function NewBillForm({ firms, products, initialBill }) {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
 
-  const watchedBilty = watch('bilty_charges') || 0
-  const watchedPkg = watch('packaging_charges') || 0
   const watchedIsCredit = watch('is_credit')
 
-
-
+  // Re-syncs the form whenever the target bill changes — covers both
+  // entering edit mode for a different bill, and navigating from an edit
+  // page back to a plain "New Bill" (initialBill becomes null), which is
+  // what the sidebar's New Bill link should trigger.
   useEffect(() => {
+    reset(buildDefaults())
+    setSubmitted(false)
+
     if (initialBill?.bill) {
       const firm = firms.find((f) => f.id === initialBill.bill.firm_id)
       if (firm) {
@@ -329,17 +499,12 @@ export default function NewBillForm({ firms, products, initialBill }) {
           setPrevBalance(bal - initialBill.bill.total_amount)
         })
       }
+    } else {
+      setClientQuery('')
+      setPrevBalance(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const itemsTotal = (watch('items') || []).reduce(
-    (s, i) => s + (Number(i.quantity) || 0) * (Number(i.price) || 0),
-    0
-  )
-  const grandTotal = itemsTotal + Number(watchedBilty) + Number(watchedPkg)
-  const amountWords = grandTotal > 0 ? toWords.convert(grandTotal, { currency: true }) : ''
-  const newBalance = prevBalance != null ? prevBalance + grandTotal : null
+  }, [initialBill?.bill?.id])
 
   const filteredFirms =
     clientQuery.length > 0 ? firms.filter((f) => f.name.toLowerCase().includes(clientQuery.toLowerCase())).slice(0, 8) : []
@@ -352,7 +517,14 @@ export default function NewBillForm({ firms, products, initialBill }) {
     setPrevBalance(bal)
   }
 
-  function selectProduct(index, product) {
+  const clientNav = useComboboxNav({
+    show: showClientDropdown,
+    items: filteredFirms,
+    onSelect: selectFirm,
+    onClose: () => setShowClientDropdown(false),
+  })
+
+  const selectProduct = useCallback((index, product) => {
     setValue(`items.${index}.product_name`, product.name, { shouldValidate: true })
     setValue(`items.${index}.product_id`, product.id)
 
@@ -361,7 +533,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
     if (!currentPrice) {
       setValue(`items.${index}.price`, product.standard_price)
     }
-  }
+  }, [setValue, watch])
 
   function startNewBill() {
     setSubmitted(false)
@@ -433,7 +605,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
   const onInvalid = () => setSubmitted(true)
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl mx-auto">
       <Card className="p-0 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-5 border-b">
           <h1 className="text-xl font-semibold tracking-tight">
@@ -458,26 +630,35 @@ export default function NewBillForm({ firms, products, initialBill }) {
                   setShowClientDropdown(true)
                   setValue('firm_id', null, { shouldValidate: true })
                   setPrevBalance(null)
+                  clientNav.setHighlightedIndex(-1)
                 }}
+                onKeyDown={clientNav.handleKeyDown}
                 onFocus={() => setShowClientDropdown(true)}
-                onBlur={() => setTimeout(() => setShowClientDropdown(false), 150)}
+                onBlur={() => {
+                  setClientTouched(true)
+                  setTimeout(() => setShowClientDropdown(false), 150)
+                }}
                 placeholder="Type to search..."
                 autoComplete="off"
               />
               {showClientDropdown && filteredFirms.length > 0 && (
                 <div className="absolute z-20 bg-background border rounded-md shadow-md w-full mt-1 max-h-48 overflow-auto animate-in fade-in slide-in-from-top-1">
-                  {filteredFirms.map((f) => (
+                  {filteredFirms.map((f, i) => (
                     <div
                       key={f.id}
                       onMouseDown={(e) => { e.preventDefault(); selectFirm(f) }}
-                      className="px-3 py-1.5 text-sm hover:bg-muted cursor-pointer transition-colors"
+                      onMouseEnter={() => clientNav.setHighlightedIndex(i)}
+                      className={`px-3 py-1.5 text-sm cursor-pointer transition-colors ${i === clientNav.highlightedIndex ? 'bg-muted' : 'hover:bg-muted'
+                        }`}
                     >
                       {f.name}
                     </div>
                   ))}
                 </div>
               )}
-              {submitted && errors.firm_id && <p className="text-red-600 text-xs">{errors.firm_id.message}</p>}
+              {(submitted || clientTouched) && errors.firm_id && (
+                <p className="text-red-600 text-xs">{errors.firm_id.message}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -487,12 +668,36 @@ export default function NewBillForm({ firms, products, initialBill }) {
 
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Bilty #</Label>
-              <Input {...register('bilty_no')} />
+              <Input
+                maxLength={15}
+                className={(submitted || touchedFields.bilty_no) && errors.bilty_no ? 'border-red-500' : ''}
+                {...register('bilty_no')}
+              />
+              {(submitted || touchedFields.bilty_no) && errors.bilty_no && (
+                <p className="text-red-600 text-xs">{errors.bilty_no.message}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">D/O #</Label>
-              <Input {...register('do_no')} />
+              <Input
+                inputMode="numeric"
+                className={(submitted || touchedFields.do_no) && errors.do_no ? 'border-red-500' : ''}
+                {...(() => {
+                  const { ref, onChange, ...r } = register('do_no')
+                  return {
+                    ref,
+                    ...r,
+                    onChange: (e) => {
+                      e.target.value = sanitizeDigits(e.target.value, 5)
+                      onChange(e)
+                    },
+                  }
+                })()}
+              />
+              {(submitted || touchedFields.do_no) && errors.do_no && (
+                <p className="text-red-600 text-xs">{errors.do_no.message}</p>
+              )}
             </div>
           </div>
 
@@ -546,6 +751,10 @@ export default function NewBillForm({ firms, products, initialBill }) {
                     register={register}
                     watch={watch}
                     setValue={setValue}
+                    control={control}
+                    rowErrors={errors?.items?.[index]}
+                    rowTouched={touchedFields?.items?.[index]}
+                    submitted={submitted}
                     products={products}
                     onSelectProduct={selectProduct}
                     onRemove={remove}
@@ -557,35 +766,56 @@ export default function NewBillForm({ firms, products, initialBill }) {
               </tbody>
             </table>
           </div>
-          {submitted && errors.items && <p className="text-red-600 text-xs">{errors.items.message}</p>}
+          {submitted && errors.items?.message && <p className="text-red-600 text-xs">{errors.items.message}</p>}
 
           <div className="border-t pt-5 flex flex-wrap items-end justify-between gap-6">
             <div className="flex gap-4">
               <div className="w-32 space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Bilty charges</Label>
-                <Input type="number" className="font-mono tabular-nums" {...register('bilty_charges', { valueAsNumber: true })} />
+                <Input
+                  type="number"
+                  className={`font-mono tabular-nums ${(submitted || touchedFields.bilty_charges) && errors.bilty_charges ? 'border-red-500' : ''}`}
+                  {...(() => {
+                    const { ref, onChange, ...r } = register('bilty_charges', { valueAsNumber: true })
+                    return {
+                      ref,
+                      ...r,
+                      onChange: (e) => {
+                        e.target.value = sanitizeDigits(e.target.value, 7)
+                        onChange(e)
+                      },
+                    }
+                  })()}
+                />
+                {(submitted || touchedFields.bilty_charges) && errors.bilty_charges && (
+                  <p className="text-red-600 text-xs">{errors.bilty_charges.message}</p>
+                )}
               </div>
               <div className="w-32 space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Packaging</Label>
-                <Input type="number" className="font-mono tabular-nums" {...register('packaging_charges', { valueAsNumber: true })} />
+                <Input
+                  type="number"
+                  className={`font-mono tabular-nums ${(submitted || touchedFields.packaging_charges) && errors.packaging_charges ? 'border-red-500' : ''}`}
+                  {...(() => {
+                    const { ref, onChange, ...r } = register('packaging_charges', { valueAsNumber: true })
+                    return {
+                      ref,
+                      ...r,
+                      onChange: (e) => {
+                        e.target.value = sanitizeDigits(e.target.value, 7)
+                        onChange(e)
+                      },
+                    }
+                  })()}
+                />
+                {(submitted || touchedFields.packaging_charges) && errors.packaging_charges && (
+                  <p className="text-red-600 text-xs">{errors.packaging_charges.message}</p>
+                )}
               </div>
             </div>
 
             <div className="flex items-center gap-5 ml-auto">
-              <div className="text-right">
-                <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium mb-0.5">Grand total</div>
-                <div className="font-mono tabular-nums text-2xl font-semibold tracking-tight">
-                  <span className="text-sm text-muted-foreground font-sans mr-1">Rs</span>
-                  {grandTotal.toLocaleString()}
-                </div>
-                {amountWords && <div className="text-[11px] text-muted-foreground mt-0.5">{amountWords}</div>}
-                {newBalance != null && (
-                  <div className="text-xs mt-1">
-                    New balance:{' '}
-                    <span className="text-red-600 font-medium">Rs {newBalance.toLocaleString()}</span>
-                  </div>
-                )}
-              </div>
+              <BillTotals control={control} prevBalance={prevBalance} />
               <Button type="submit" size="lg" disabled={!isValid || isSubmitting}>
                 {isSubmitting ? 'Saving...' : editingBillId ? 'Update bill' : 'Save bill'}
               </Button>
