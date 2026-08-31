@@ -833,7 +833,11 @@ export default function NewBillForm({ firms, products, initialBill }) {
 
             <div className="flex items-center gap-5 ml-auto">
               <BillTotals control={control} prevBalance={prevBalance} />
-              <Button type="submit" size="lg" disabled={!isValid || isSubmitting}>
+              <Button
+                type="submit"
+                className="rounded-lg h-auto self-stretch px-8"
+                size="lg"
+                disabled={!isValid || isSubmitting}>
                 {isSubmitting ? 'Saving...' : editingBillId ? 'Update bill' : 'Save bill'}
               </Button>
             </div>
