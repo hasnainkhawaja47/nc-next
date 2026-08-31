@@ -21,16 +21,16 @@ export default function DashboardClientSections({ stats }) {
 
   const billsDeltaPct = stats.billsLastMonth
     ? (
-        ((stats.billsThisMonth - stats.billsLastMonth) / stats.billsLastMonth) *
-        100
-      ).toFixed(0)
+      ((stats.billsThisMonth - stats.billsLastMonth) / stats.billsLastMonth) *
+      100
+    ).toFixed(0)
     : "0";
   const paymentsDeltaPct = stats.paymentsLastMonth
     ? (
-        ((stats.paymentsThisMonth - stats.paymentsLastMonth) /
-          stats.paymentsLastMonth) *
-        100
-      ).toFixed(0)
+      ((stats.paymentsThisMonth - stats.paymentsLastMonth) /
+        stats.paymentsLastMonth) *
+      100
+    ).toFixed(0)
     : "0";
 
   return (
@@ -45,10 +45,12 @@ export default function DashboardClientSections({ stats }) {
       <StatCard
         index={1}
         icon={Receipt}
-        label="Bills This Month"
-        value={stats.billsThisMonth}
-        delta={`${billsDeltaPct > 0 ? "+" : ""}${billsDeltaPct}%`}
-        deltaGood={billsDeltaPct >= 0}
+        label="Collection Rate"
+        value={stats.collectionRate}
+        formatValue={(v) => `${v}%`}
+        delta={stats.collectionRate >= 100 ? "Fully collected" : `${100 - stats.collectionRate}%`}
+        deltaSuffix="still outstanding"
+        deltaGood={stats.collectionRate >= 80}
       />
       <StatCard
         index={2}

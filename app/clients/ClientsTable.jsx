@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Plus, IdCard, Trash2, X, BookOpen, Search } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
 
 export default function ClientsTable({ initialClients }) {
 
@@ -77,7 +78,7 @@ export default function ClientsTable({ initialClients }) {
       return
     }
     toast.success('Client deleted')
-    window.location.reload()
+    router.refresh()
   }
 
   const columns = [
@@ -164,7 +165,7 @@ export default function ClientsTable({ initialClients }) {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="address">Address <span className="text-muted-foreground font-normal">(optional)</span></Label>
-              <Input id="address" name="address" />
+              <Textarea id="address" name="address" rows={2} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="phone">Phone <span className="text-muted-foreground font-normal">(optional)</span></Label>
@@ -194,7 +195,7 @@ export default function ClientsTable({ initialClients }) {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="details-address">Address <span className="text-muted-foreground font-normal">(optional)</span></Label>
-              <Input id="details-address" name="address" defaultValue={editing?.address ?? ''} />
+              <Textarea id="details-address" name="address" defaultValue={editing?.address ?? ''} rows={2} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="details-phone">Phone <span className="text-muted-foreground font-normal">(optional)</span></Label>

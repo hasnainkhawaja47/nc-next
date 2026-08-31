@@ -10,6 +10,7 @@ export default function StatCard({
   delta,
   deltaGood,
   index = 0,
+  deltaSuffix = "vs last month"
 }) {
   const animated = useCountUp(value);
 
@@ -43,7 +44,7 @@ export default function StatCard({
           <span className={deltaGood ? "text-emerald-600" : "text-red-500"}>
             {delta}
           </span>
-          <span className="text-muted-foreground">vs last month</span>
+          <span className="text-muted-foreground">{deltaSuffix}</span>
         </div>
       )}
     </div>

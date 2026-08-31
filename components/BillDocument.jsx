@@ -1,10 +1,10 @@
-import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
 
 const styles = StyleSheet.create({
   page: { padding: 24, fontSize: 10, fontFamily: 'Helvetica' },
-  header: { textAlign: 'center', marginBottom: 12 },
-  logo: { fontSize: 18, fontWeight: 700, letterSpacing: 2 },
-  sub: { fontSize: 9, color: '#666', marginTop: 2 },
+  header: { alignItems: 'center', marginBottom: 12 },
+  logo: { width: 140, height: 31 },
+  sub: { fontSize: 9, color: '#666', marginTop: 4 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   metaRight: { textAlign: 'right' },
   table: { borderTop: '1 solid #ccc', borderBottom: '1 solid #ccc', marginBottom: 8 },
@@ -32,7 +32,7 @@ export function BillPage({ bill, firmName, items, amountWords, prevBalance }) {
   return (
     <Page size="A5" style={styles.page}>
       <View style={styles.header}>
-        <Text style={styles.logo}>NEEDLE CRAFT</Text>
+        <Image style={styles.logo} src="/needle-logo-horizontal.png" />
         <Text style={styles.sub}>051-5540343</Text>
       </View>
 

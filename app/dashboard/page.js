@@ -6,7 +6,7 @@ import TopProducts from './TopProducts'
 import TopClients from './TopClients'
 import RecentActivity from './RecentActivity'
 import Anomalies from './Anomalies'
-
+export const dynamic = 'force-dynamic'
 function monthBounds(offset = 0) {
   const now = new Date()
   const first = new Date(now.getFullYear(), now.getMonth() + offset, 1)
@@ -18,11 +18,14 @@ export default async function DashboardPage() {
   const supabase = await createClient()
 
   const thisMonth = monthBounds(0)
+  const now = new Date()
+  const monthLabel = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   const lastMonth = monthBounds(-1)
 
   const [
     { data: firmBalances },
-    { count: billsThisMonth },
+    { data: billsThisMonthRows },
     { count: billsLastMonth },
     { data: paymentsThisMonthRows },
     { data: paymentsLastMonthRows },
@@ -34,7 +37,7 @@ export default async function DashboardPage() {
     { data: anomalyRows },
   ] = await Promise.all([
     supabase.rpc('get_firm_balances'), // returns firm_id, billed, paid (union of live + archive bills/payments)
-    supabase.from('bills').select('id', { count: 'exact', head: true }).gte('bill_date', thisMonth.start).lt('bill_date', thisMonth.end),
+    supabase.from('bills').select('total_amount').gte('bill_date', thisMonth.start).lt('bill_date', thisMonth.end),
     supabase.from('bills').select('id', { count: 'exact', head: true }).gte('bill_date', lastMonth.start).lt('bill_date', lastMonth.end),
     supabase.from('payments').select('amount').gte('payment_date', thisMonth.start).lt('payment_date', thisMonth.end),
     supabase.from('payments').select('amount').gte('payment_date', lastMonth.start).lt('payment_date', lastMonth.end),
@@ -54,11 +57,17 @@ export default async function DashboardPage() {
   )
   const paymentsThisMonth = (paymentsThisMonthRows || []).reduce((s, p) => s + (p.amount || 0), 0)
   const paymentsLastMonth = (paymentsLastMonthRows || []).reduce((s, p) => s + (p.amount || 0), 0)
+  const billsThisMonthValue = (billsThisMonthRows || []).reduce((s, b) => s + parseFloat(b.total_amount || 0), 0)
+  const billsThisMonthCount = (billsThisMonthRows || []).length
+
+  const collectionRate = billsThisMonthValue > 0
+    ? Math.round((paymentsThisMonth / billsThisMonthValue) * 100)
+    : 0
 
   const stats = {
     receivables,
-    billsThisMonth: billsThisMonth || 0,
-    billsLastMonth: billsLastMonth || 0,
+    billsThisMonth: billsThisMonthCount,
+    collectionRate,
     paymentsThisMonth,
     paymentsLastMonth,
     openAnomalies: openAnomaliesCount || 0,
@@ -73,9 +82,9 @@ export default async function DashboardPage() {
       .select('product_name, quantity')
       .in('bill_id', billIds)
     const totals = {}
-    ;(items || []).forEach((it) => {
-      totals[it.product_name] = (totals[it.product_name] || 0) + (it.quantity || 0)
-    })
+      ; (items || []).forEach((it) => {
+        totals[it.product_name] = (totals[it.product_name] || 0) + (it.quantity || 0)
+      })
     topProductsThisMonth = Object.entries(totals)
       .map(([name, units]) => ({ name, units }))
       .sort((a, b) => b.units - a.units)
@@ -84,7 +93,7 @@ export default async function DashboardPage() {
 
   // Top clients by balance (full sorted list, TopClients slices top 5 + shows full via dialog)
   const firmMap = {}
-  ;(firms || []).forEach((f) => { firmMap[f.id] = f.name })
+    ; (firms || []).forEach((f) => { firmMap[f.id] = f.name })
   const allClientsByBalance = (firmBalances || [])
     .map((f) => ({
       name: firmMap[f.firm_id] || 'Unknown',
@@ -127,9 +136,13 @@ export default async function DashboardPage() {
 
         <DashboardClientSections stats={stats} />
 
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3 items-stretch">
           <div className="lg:col-span-2">
-            <TopProducts products={topProductsThisMonth} monthLabel="This Month" delayMs={220} />
+            <TopProducts
+              initialProducts={topProductsThisMonth}
+              initialMonthLabel={monthLabel}
+              delayMs={220}
+            />
           </div>
           <TopClients topFive={topClients} allClients={allClientsByBalance} delayMs={280} />
         </div>

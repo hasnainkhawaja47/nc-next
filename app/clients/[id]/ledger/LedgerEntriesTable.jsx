@@ -4,12 +4,12 @@ import { useState } from 'react'
 import Link from 'next/link'
 import DeleteEntryButton from './DeleteEntryButton'
 import EditPaymentDialog from '@/app/payments/EditPaymentDialog'
-import { BillDetailsDialog } from './BillDetailsDialog'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table'
 import { Pencil } from 'lucide-react'
-
+import { BillDetailsDialog } from '@/components/BillDetailsDialog'
+import { getBillDetails } from './actions'
 export default function LedgerEntriesTable({ entries }) {
   const [selectedBill, setSelectedBill] = useState(null) // { id, isArchive }
 
@@ -96,10 +96,11 @@ export default function LedgerEntriesTable({ entries }) {
       </Table>
 
       <BillDetailsDialog
-        billId={selectedBill?.id}
-        isArchive={selectedBill?.isArchive}
-        open={!!selectedBill}
-        onOpenChange={(open) => !open && setSelectedBill(null)}
+        billId={viewingId}
+        isArchive={viewingIsArchive}
+        open={viewingId != null}
+        onOpenChange={(v) => !v && setViewingId(null)}
+        fetchDetails={getBillDetails}
       />
     </div>
   )

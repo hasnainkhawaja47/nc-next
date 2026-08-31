@@ -95,6 +95,22 @@ const emptyRow = {
   product_id: null,
 }
 
+// Single source of truth for a blank bill's default values, used by both
+// buildDefaults() (no initialBill case) and startNewBill(), so the two
+// can never quietly drift apart from each other.
+function emptyBillDefaults() {
+  return {
+    firm_id: null,
+    bill_date: new Date().toISOString().split('T')[0],
+    bilty_no: '',
+    do_no: '',
+    bilty_charges: 0,
+    packaging_charges: 0,
+    is_credit: true,
+    items: [{ ...emptyRow }],
+  }
+}
+
 function isRowComplete(row) {
   return (
     Boolean(row?.product_name?.trim()) &&
@@ -214,13 +230,13 @@ const ItemRow = memo(function ItemRow({
   const [showDropdown, setShowDropdown] = useState(false)
 
   function handleCellChange(field, value) {
-  const currentRow = watch(`items.${index}`)
-  const nextRow = { ...currentRow, [field]: value }
-  setValue(`items.${index}.${field}`, value, { shouldValidate: true })
-  if (isLastRow && isRowComplete(nextRow)) {
-    append({ ...emptyRow }, { shouldFocus: false })
+    const currentRow = watch(`items.${index}`)
+    const nextRow = { ...currentRow, [field]: value }
+    setValue(`items.${index}.${field}`, value, { shouldValidate: true })
+    if (isLastRow && isRowComplete(nextRow)) {
+      append({ ...emptyRow }, { shouldFocus: false })
+    }
   }
-}
 
   // useWatch (not the plain `watch()` call) so this row actually
   // re-subscribes and re-renders when its own quantity/price change. Plain
@@ -447,16 +463,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
         ],
       }
     }
-    return {
-      firm_id: null,
-      bill_date: new Date().toISOString().split('T')[0],
-      bilty_no: '',
-      do_no: '',
-      bilty_charges: 0,
-      packaging_charges: 0,
-      is_credit: true,
-      items: [{ ...emptyRow }],
-    }
+    return emptyBillDefaults()
   }
 
   const {
@@ -477,13 +484,14 @@ export default function NewBillForm({ firms, products, initialBill }) {
 
   const watchedIsCredit = watch('is_credit')
 
-  // Re-syncs the form whenever the target bill changes — covers both
-  // entering edit mode for a different bill, and navigating from an edit
-  // page back to a plain "New Bill" (initialBill becomes null), which is
-  // what the sidebar's New Bill link should trigger.
+  // Re-syncs the form whenever the target bill changes — covers entering
+  // edit mode for a different bill, and navigating from an edit page back
+  // to a plain "New Bill" (initialBill becomes null / firm_id in URL
+  // disappears), since that's a real route/search-param change.
   useEffect(() => {
     reset(buildDefaults())
     setSubmitted(false)
+    setClientTouched(false)
 
     if (initialBill?.bill) {
       const firm = firms.find((f) => f.id === initialBill.bill.firm_id)
@@ -499,6 +507,29 @@ export default function NewBillForm({ firms, products, initialBill }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialBill?.bill?.id])
+
+  // Handles the case the effect above can't: clicking the sidebar's "New
+  // Bill" link while ALREADY sitting on plain /new-bill with a
+  // partially-filled, unsaved form. The route/search-params don't change
+  // in that case (no navigation occurs, initialBill?.bill?.id stays
+  // undefined before and after), so nothing else in this component would
+  // otherwise notice the click. The Sidebar dispatches a 'reset-new-bill'
+  // window event on that click; this just needs to listen for it.
+  useEffect(() => {
+    function handleResetEvent() {
+      if (editingBillId) {
+        // Mid-edit: drop out of edit mode via a real navigation, which
+        // re-triggers the initialBill-keyed effect above and clears
+        // prevBalance/clientQuery consistently with that path.
+        router.push('/new-bill')
+      } else {
+        startNewBill()
+      }
+    }
+    window.addEventListener('reset-new-bill', handleResetEvent)
+    return () => window.removeEventListener('reset-new-bill', handleResetEvent)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingBillId])
 
   const filteredFirms =
     clientQuery.length > 0 ? firms.filter((f) => f.name.toLowerCase().includes(clientQuery.toLowerCase())).slice(0, 8) : []
@@ -531,16 +562,8 @@ export default function NewBillForm({ firms, products, initialBill }) {
 
   function startNewBill() {
     setSubmitted(false)
-    reset({
-      firm_id: null,
-      bill_date: new Date().toISOString().split('T')[0],
-      bilty_no: '',
-      do_no: '',
-      bilty_charges: 0,
-      packaging_charges: 0,
-      is_credit: true,
-      items: [{ ...emptyRow }],
-    })
+    setClientTouched(false)
+    reset(emptyBillDefaults())
     setClientQuery('')
     setPrevBalance(null)
   }

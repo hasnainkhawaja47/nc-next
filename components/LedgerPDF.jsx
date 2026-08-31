@@ -11,6 +11,7 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
   PDFDownloadLink,
 } from "@react-pdf/renderer";
@@ -32,8 +33,7 @@ const styles = StyleSheet.create({
     borderBottom: "1.5pt solid #1a1a1a",
     paddingBottom: 10,
   },
-  companyName: { fontSize: 16, fontFamily: "Helvetica-Bold" },
-  companySub: { fontSize: 8, color: "#555", marginTop: 2 },
+  logo: { width: 155, height: 34 },
   statementTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", textAlign: "right" },
   statementMeta: { fontSize: 8, color: "#555", textAlign: "right", marginTop: 2 },
   clientBlock: {
@@ -149,8 +149,7 @@ export function LedgerPDF({ entries = [], firm, dateRange, totals }) {
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.companyName}>Needle Craft</Text>
-            <Text style={styles.companySub}>Rawalpindi, Pakistan</Text>
+            <Image style={styles.logo} src="/needle-logo-horizontal.png" />
           </View>
           <View>
             <Text style={styles.statementTitle}>Client Ledger Statement</Text>

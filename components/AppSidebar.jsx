@@ -33,8 +33,8 @@ export default function AppSidebar() {
         <Sidebar collapsible="icon">
             <SidebarHeader className="py-4">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#C8A951] flex items-center justify-center shrink-0">
-                        <Scissors className="w-4 h-4 text-[#1a1a2e]" />
+                    <div className="w-8 h-8 rounded-lg bg-[#fafafa] flex items-center justify-center shrink-0">
+                        <img src="/needle-logo-icon.png" className="h-full w-full object-contain" />
                     </div>
                     <div className="overflow-hidden transition-[opacity,width] duration-200 ease-linear group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0">
                         <div className="text-sm font-semibold leading-none whitespace-nowrap">Needle Craft</div>

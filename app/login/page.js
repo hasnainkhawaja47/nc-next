@@ -47,11 +47,13 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted p-4">
       <Card className="w-full max-w-sm rounded-2xl">
         <form onSubmit={handleLogin}>
-          <CardHeader className="space-y-1.5">
+          <CardHeader className="space-y-1.5 items-center text-center">
+            <img
+              src="/needle-logo-icon.png"
+              alt="Needle Craft"
+              className="h-12 w-auto mx-auto block mb-1"
+            />
             <CardTitle className="text-xl font-semibold">Login</CardTitle>
-            <CardDescription>
-              Enter your email below to login to your Needle Craft account
-            </CardDescription>
           </CardHeader>
 
           <CardContent className="mt-4">
@@ -61,7 +63,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="Your E-mail address here"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -74,6 +76,7 @@ export default function LoginPage() {
                 <div className="relative">
                   <Input
                     id="password"
+                    placeholder="Password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
