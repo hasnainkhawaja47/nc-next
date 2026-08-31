@@ -9,6 +9,8 @@ import {
 } from '@/components/ui/sidebar'
 import { LayoutDashboard, FileText, Wallet, Users, Package, BarChart3, LogOut, Scissors } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
+import { useIsMobile } from '@/hooks/use-mobile'
+
 const links = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/new-bill', label: 'New Bill', icon: FileText },
@@ -21,6 +23,7 @@ const links = [
 export default function AppSidebar() {
     const pathname = usePathname()
     const router = useRouter()
+    const isMobile = useIsMobile()
 
     async function handleSignOut() {
         const supabase = createClient()
@@ -53,6 +56,8 @@ export default function AppSidebar() {
                                         <SidebarMenuButton
                                             render={<Link href={link.href} />}
                                             isActive={pathname === link.href}
+                                            size={isMobile ? "lg" : "default"}
+                                            className={isMobile ? "text-sm [&_svg]:size-5" : undefined}
                                             onClick={
                                                 link.href === '/new-bill'
                                                     ? () => window.dispatchEvent(new Event('reset-new-bill'))
