@@ -16,7 +16,8 @@ function monthBounds(offset = 0) {
 
 export default async function DashboardPage() {
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const thisMonth = monthBounds(0)
   const now = new Date()
   const monthLabel = new Date(now.getFullYear(), now.getMonth(), 1)

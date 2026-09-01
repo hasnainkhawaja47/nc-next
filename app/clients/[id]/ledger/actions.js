@@ -37,6 +37,8 @@ async function getOpeningBalance(supabase, firmId, fromDate) {
 
 export async function getLedger(firmId, from, to) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { entries: [], totalBilled: 0, totalPaid: 0, balance: 0, openingBalance: 0 }
   const fromDate = from || null
   const toDate = to || null
 
@@ -121,6 +123,8 @@ export async function getLedger(firmId, from, to) {
 
 export async function getBillDetails(billId, isArchive) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { bill: null, items: [] }
   const billTable = isArchive ? 'archive_bills' : 'bills'
   const itemsTable = isArchive ? 'archive_bill_items' : 'bill_items'
 

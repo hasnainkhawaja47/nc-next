@@ -12,7 +12,8 @@ function monthKey(dateStr) {
 // adjust the select/column name if your bills table names it differently.
 export default async function BilledVsCollected() {
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const sixMonthsAgo = new Date()
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
   const sinceDate = sixMonthsAgo.toISOString().split('T')[0]
@@ -29,16 +30,16 @@ export default async function BilledVsCollected() {
   ])
 
   const billedByMonth = {}
-  ;(bills || []).forEach((b) => {
-    const k = monthKey(b.bill_date)
-    billedByMonth[k] = (billedByMonth[k] || 0) + (b.total_amount || 0)
-  })
+    ; (bills || []).forEach((b) => {
+      const k = monthKey(b.bill_date)
+      billedByMonth[k] = (billedByMonth[k] || 0) + (b.total_amount || 0)
+    })
 
   const collectedByMonth = {}
-  ;(payments || []).forEach((p) => {
-    const k = monthKey(p.payment_date)
-    collectedByMonth[k] = (collectedByMonth[k] || 0) + (p.amount || 0)
-  })
+    ; (payments || []).forEach((p) => {
+      const k = monthKey(p.payment_date)
+      collectedByMonth[k] = (collectedByMonth[k] || 0) + (p.amount || 0)
+    })
 
   const months = Array.from(
     new Set([...Object.keys(billedByMonth), ...Object.keys(collectedByMonth)])

@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 
 export async function dismissAnomaly(id) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
   const { error } = await supabase
     .from('anomalies')
     .update({ dismissed: true })
@@ -23,8 +25,10 @@ function monthBounds(offset = 0) {
 
 export async function getTopProductsForMonth(offset = 0) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { products: [], monthLabel: '' }
   const { start, end, label } = monthBounds(offset)
-
+  
   const { data: billIdRows } = await supabase
     .from('bills')
     .select('id')
@@ -42,9 +46,9 @@ export async function getTopProductsForMonth(offset = 0) {
     .in('bill_id', billIds)
 
   const totals = {}
-  ;(items || []).forEach((it) => {
-    totals[it.product_name] = (totals[it.product_name] || 0) + (it.quantity || 0)
-  })
+    ; (items || []).forEach((it) => {
+      totals[it.product_name] = (totals[it.product_name] || 0) + (it.quantity || 0)
+    })
 
   const products = Object.entries(totals)
     .map(([name, units]) => ({ name, units }))

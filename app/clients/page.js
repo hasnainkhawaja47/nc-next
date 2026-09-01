@@ -4,7 +4,8 @@ import { Users } from 'lucide-react'
 
 export default async function ClientsPage() {
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const [{ data: firms }, { data: balances }] = await Promise.all([
     supabase.from('firms').select('id, name, address, phone').order('name'),
     supabase.rpc('get_firm_balances'),

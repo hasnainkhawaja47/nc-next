@@ -5,7 +5,8 @@ import NewBillForm from './NewBillForm'
 export default async function NewBillPage({ searchParams }) {
   const sp = await searchParams
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const [{ data: firms }, { data: products }] = await Promise.all([
     supabase.from('firms').select('id, name').order('name'),
     supabase.from('products').select('id, code, name, standard_price').order('code'),

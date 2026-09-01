@@ -3,7 +3,8 @@ import ProductsTable from './ProductsTable'
 import { Package } from 'lucide-react'
 export default async function ProductsPage() {
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const [{ data: products }, { data: soldRows }, { data: soldYtdRows }] = await Promise.all([
     supabase.from('products').select('id, code, name, standard_price, cost_price').order('code'),
     supabase.rpc('get_product_units_sold'),

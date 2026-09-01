@@ -96,10 +96,10 @@ export default function LedgerEntriesTable({ entries }) {
       </Table>
 
       <BillDetailsDialog
-        billId={viewingId}
-        isArchive={viewingIsArchive}
-        open={viewingId != null}
-        onOpenChange={(v) => !v && setViewingId(null)}
+        billId={selectedBill?.id}
+        isArchive={selectedBill?.isArchive}
+        open={selectedBill != null}
+        onOpenChange={(v) => !v && setSelectedBill(null)}
         fetchDetails={getBillDetails}
       />
     </div>

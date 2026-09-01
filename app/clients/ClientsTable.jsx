@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { addClient, updateClient, deleteClient } from './actions'
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Plus, IdCard, Trash2, X, BookOpen, Search } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
+const SEARCH_STORAGE_KEY = 'clients-search-query'
 
 export default function ClientsTable({ initialClients }) {
 
@@ -22,8 +23,13 @@ export default function ClientsTable({ initialClients }) {
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState(null)
   const [detailsError, setDetailsError] = useState(null)
-  const [query, setQuery] = useState("");
-
+  const [query, setQuery] = useState(() => {
+    if (typeof window === 'undefined') return ''
+    return sessionStorage.getItem(SEARCH_STORAGE_KEY) || ''
+  })
+  useEffect(() => {
+    sessionStorage.setItem(SEARCH_STORAGE_KEY, query)
+  }, [query])
   const filteredFirms = useMemo(() => {
     if (!query.trim()) return initialClients;
     const q = query.toLowerCase();

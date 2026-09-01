@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 
 export async function addProduct(formData) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { error } = await supabase.from('products').insert({
     code: formData.get('code'),
     name: formData.get('name'),
@@ -18,6 +20,8 @@ export async function addProduct(formData) {
 
 export async function updateProduct(id, formData) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { error } = await supabase.from('products').update({
     code: formData.get('code'),
     name: formData.get('name'),
@@ -31,7 +35,8 @@ export async function updateProduct(id, formData) {
 
 export async function deleteProduct(id) {
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { data: used } = await supabase
     .from('bill_items')
     .select('id')

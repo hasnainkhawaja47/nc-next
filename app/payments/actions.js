@@ -6,6 +6,8 @@ import { revalidatePath } from 'next/cache'
 
 export async function getFirmBalance(firmId) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { data: balanceRows } = await supabase.rpc('get_firm_balance', { p_firm_id: firmId })
   const row = (balanceRows && balanceRows[0]) || {}
   return (row.billed || 0) - (row.paid || 0)
@@ -13,7 +15,8 @@ export async function getFirmBalance(firmId) {
 
 export async function addPayment(formData) {
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const firm_id = Number(formData.get('firm_id'))
   const payment_date = formData.get('payment_date')
   const amount = Number(formData.get('amount'))
@@ -57,6 +60,8 @@ export async function addPayment(formData) {
 
 export async function deletePayment(id) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { error } = await supabase.from('payments').delete().eq('id', id)
   if (error) return { error: error.message }
   revalidatePath('/payments')
@@ -65,6 +70,8 @@ export async function deletePayment(id) {
 
 export async function updatePayment(id, formData) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { error } = await supabase.from('payments').update({
     payment_date: formData.get('payment_date'),
     amount: Number(formData.get('amount')),
@@ -80,6 +87,8 @@ export async function updatePayment(id, formData) {
 
 export async function getPayment(id) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { data, error } = await supabase
     .from('payments')
     .select('firm_id, payment_date, amount, method, bank_name, cheque_number, memo')

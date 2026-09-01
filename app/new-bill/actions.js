@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache'
 
 export async function saveBill(data) {
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { firm_id, bill_date, bilty_no, do_no, bilty_charges, packaging_charges, is_credit, items } = data
 
   const itemsTotal = items.reduce((s, i) => s + i.quantity * i.price, 0)
@@ -86,6 +87,8 @@ export async function saveBill(data) {
 
 export async function getPreviousBalance(firmId) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
   const { data: balanceRows } = await supabase.rpc('get_firm_balance', { p_firm_id: firmId })
   const row = (balanceRows && balanceRows[0]) || {}
   return (row.billed || 0) - (row.paid || 0)
@@ -93,6 +96,8 @@ export async function getPreviousBalance(firmId) {
 
 export async function getBillForEdit(id) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { bill: null, items: [] }
   const { data: bill } = await supabase
     .from('bills')
     .select('id, firm_id, bill_date, bilty_no, do_no, bilty_charges, packaging_charges, is_credit, total_amount')
@@ -107,7 +112,8 @@ export async function getBillForEdit(id) {
 
 export async function updateBill(id, data) {
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { firm_id, bill_date, bilty_no, do_no, bilty_charges, packaging_charges, is_credit, items } = data
   const itemsTotal = items.reduce((s, i) => s + i.quantity * i.price, 0)
   const total_amount = itemsTotal + (bilty_charges || 0) + (packaging_charges || 0)
@@ -150,6 +156,8 @@ export async function updateBill(id, data) {
 
 export async function deleteBill(id) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { error } = await supabase.from('bills').delete().eq('id', id)
   if (error) return { error: error.message }
   revalidatePath('/new-bill')

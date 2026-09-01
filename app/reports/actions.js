@@ -5,6 +5,8 @@ const toWords = new ToWords({ localeCode: 'en-IN' })
 
 export async function getBillDetails(billId) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { bill: null, items: [] }
   const [{ data: bill }, { data: items }] = await Promise.all([
     supabase.from('bills').select('*').eq('id', billId).single(),
     supabase.from('bill_items').select('*').eq('bill_id', billId),
@@ -14,6 +16,8 @@ export async function getBillDetails(billId) {
 
 export async function searchBills({ mode, from, to, billNo, doNo }) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
   let query = supabase.from('bills').select('*, firms(name)').order('id', { ascending: false })
 
   if (mode === 'bill' && billNo) {
@@ -35,7 +39,8 @@ export async function searchBills({ mode, from, to, billNo, doNo }) {
 }
 export async function getBillsForPrint(billIds) {
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
   const { data: bills } = await supabase
     .from('bills')
     .select('*, firms(id, name)')

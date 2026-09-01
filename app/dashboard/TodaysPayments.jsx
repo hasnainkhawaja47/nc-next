@@ -13,7 +13,8 @@ function today() {
 
 export default async function TodaysPayments() {
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { data: payments } = await supabase
     .from('payments')
     .select('*, firms(name)')

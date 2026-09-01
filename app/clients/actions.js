@@ -5,6 +5,9 @@ import { revalidatePath } from 'next/cache'
 
 export async function addClient(formData) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
+
   const { error } = await supabase.from('firms').insert({
     name: formData.get('name'),
     address: formData.get('address') || null,
@@ -17,6 +20,8 @@ export async function addClient(formData) {
 
 export async function updateClient(id, formData) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const { error } = await supabase.from('firms').update({
     name: formData.get('name'),
     address: formData.get('address') || null,
@@ -28,10 +33,11 @@ export async function updateClient(id, formData) {
 }
 
 export async function getBillDetails(billId, isArchive) {
-  const supabase = createClient();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { bill: null, items: [] }
   const billTable = isArchive ? "archive_bills" : "bills";
-  const itemsTable = isArchive ? "archive_bill_items" : "bill_items";
-
+  
   const [{ data: bill }, { data: items }] = await Promise.all([
     supabase.from(billTable).select("*").eq("id", billId).single(),
     supabase.from(itemsTable).select("*").eq("bill_id", billId),
@@ -42,7 +48,8 @@ export async function getBillDetails(billId, isArchive) {
 
 export async function deleteClient(id) {
   const supabase = await createClient()
-
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
   const [{ data: bills }, { data: pmts }] = await Promise.all([
     supabase.from('bills').select('id').eq('firm_id', id).limit(1),
     supabase.from('payments').select('id').eq('firm_id', id).limit(1),
