@@ -152,10 +152,10 @@ export function LedgerPDF({ entries = [], firm, dateRange, totals }) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <View>
+          {/* <View>
             <Text style={styles.companyName}>NEEDLE CRAFT</Text>
             <Text style={styles.companySub}>Rawalpindi, Pakistan</Text>
-          </View>
+          </View> */}
           <View>
             <Text style={styles.statementTitle}>Client Ledger Statement</Text>
             <Text style={styles.statementMeta}>
