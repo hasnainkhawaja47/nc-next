@@ -181,14 +181,15 @@ export default function ActivityPanel() {
             {open && (
                 <Card
                     className="
-                        fixed z-40 bottom-5 right-5
-                        w-[calc(100vw-2.5rem)] max-w-sm
-                        max-h-[70vh]
-                        rounded-xl p-0 overflow-hidden
-                        shadow-xl
-                        animate-in fade-in slide-in-from-bottom-4 zoom-in-95
-                        duration-200 ease-out
-                    "
+                    fixed z-40 bottom-5 right-5
+                    w-[calc(100vw-2.5rem)] max-w-sm
+                    h-[70vh] max-h-[70vh]
+                    rounded-xl p-0 overflow-hidden
+                    shadow-xl
+                    flex flex-col
+                    animate-in fade-in slide-in-from-bottom-4 zoom-in-95
+                    duration-200 ease-out
+                "
                 >
                     {/* Header */}
                     <div
@@ -280,7 +281,7 @@ export default function ActivityPanel() {
                     </div>
 
                     {/* Bills */}
-                    <ScrollArea className="max-h-[calc(70vh-48px)]">
+                    <ScrollArea className="flex-1 min-h-0">
                         <div className="divide-y">
                             {entries.map((entry) => {
                                 const isSelected = selectedIds.has(entry.billId)
