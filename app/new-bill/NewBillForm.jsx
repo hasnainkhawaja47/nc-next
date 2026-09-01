@@ -44,7 +44,7 @@ const schema = z
       .nullable()
       .refine((v) => v != null, 'Please select a client.'),
     bill_date: z.string().min(1, 'Date is required.'),
-    bilty_no: z.string().max(15, 'Max 15 characters').optional(),
+    bilty_no: z.string().max(30, 'Max 30 characters').optional(),
     do_no: z.string().min(1, 'Required').max(5, 'Max 5 digits').regex(/^\d*$/, 'Numeric only'),
     bilty_charges: z.coerce.number().min(0).max(9999999, 'Max 7 digits').default(0),
     packaging_charges: z.coerce.number().min(0).max(9999999, 'Max 7 digits').default(0),
