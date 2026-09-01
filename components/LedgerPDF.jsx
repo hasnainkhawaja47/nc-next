@@ -143,9 +143,8 @@ export function LedgerPDF({ entries = [], firm, dateRange, totals }) {
 
   const rangeText =
     dateRange?.from || dateRange?.to
-      ? `${dateRange.from ? fmtDate(dateRange.from) : "Start"} — ${
-          dateRange.to ? fmtDate(dateRange.to) : "Today"
-        }`
+      ? `${dateRange.from ? fmtDate(dateRange.from) : "Start"} — ${dateRange.to ? fmtDate(dateRange.to) : "Today"
+      }`
       : "Full history";
 
   return (
@@ -226,7 +225,7 @@ export function LedgerPDF({ entries = [], firm, dateRange, totals }) {
         </View>
 
         <Text style={styles.footer}>
-          Needle Craft — Client Ledger Statement — {firm?.name || ""} — {rangeText}
+          Client Ledger Statement — {firm?.name || ""} — {rangeText}
         </Text>
       </Page>
     </Document>
