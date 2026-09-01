@@ -71,8 +71,8 @@ export default function EditPaymentDialog({ paymentId, label = 'Edit' }) {
                     </Button>
                 }
             />
-            <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden">
-                <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
+                <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
                     <DialogTitle className="text-lg">Edit payment</DialogTitle>
                 </DialogHeader>
 
@@ -84,31 +84,35 @@ export default function EditPaymentDialog({ paymentId, label = 'Edit' }) {
                         <Skeleton className="h-20 w-full rounded-xl" />
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
-                        <PaymentFields
-                            date={date}
-                            setDate={setDate}
-                            amount={amount}
-                            setAmount={setAmount}
-                            method={method}
-                            setMethod={setMethod}
-                            bankNameDefault={payment.bank_name}
-                            chequeNumberDefault={payment.cheque_number}
-                            memoDefault={payment.memo}
-                            balance={currentBalance}
-                            disabled={submitting}
-                        />
+                    <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+                        <div className="px-6 pb-4 space-y-4 overflow-y-auto flex-1 min-h-0">
+                            <PaymentFields
+                                date={date}
+                                setDate={setDate}
+                                amount={amount}
+                                setAmount={setAmount}
+                                method={method}
+                                setMethod={setMethod}
+                                bankNameDefault={payment.bank_name}
+                                chequeNumberDefault={payment.cheque_number}
+                                memoDefault={payment.memo}
+                                balance={currentBalance}
+                                disabled={submitting}
+                            />
+                        </div>
 
-                        <Button type="submit" className="w-full rounded-lg" disabled={submitting}>
-                            {submitting ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Saving...
-                                </>
-                            ) : (
-                                'Save changes'
-                            )}
-                        </Button>
+                        <div className="px-6 pb-6 pt-2 shrink-0 border-t border-border">
+                            <Button type="submit" className="w-full rounded-lg" disabled={submitting}>
+                                {submitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    'Save changes'
+                                )}
+                            </Button>
+                        </div>
                     </form>
                 )}
             </DialogContent>
