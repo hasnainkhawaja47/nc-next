@@ -82,7 +82,7 @@ export default function LedgerFilter({ firmId, defaultFrom, defaultTo, entries, 
         </Popover>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap justify-center gap-2">
         <Button onClick={applyFilter}>
           <Search className="w-4 h-4 mr-1.5" />
           Filter
