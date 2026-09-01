@@ -2,8 +2,8 @@ import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 
 const styles = StyleSheet.create({
   page: { padding: 24, fontSize: 10, fontFamily: 'Helvetica' },
-  header: { alignItems: 'center', marginBottom: 12 },
-  logo: { fontSize: 16, fontFamily: 'Times-Bold', letterSpacing: 2.3 },
+  header: { alignItems: 'left', marginBottom: 12 },
+  logo: { fontSize: 16, fontFamily: 'Times-Bold', letterSpacing: 1.5 },
   sub: { fontSize: 9, color: '#666', marginTop: 4 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   metaRight: { textAlign: 'right' },
