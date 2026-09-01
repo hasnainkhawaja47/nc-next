@@ -23,6 +23,9 @@ export default function ClientsTable({ initialClients }) {
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState(null)
   const [detailsError, setDetailsError] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
   const [query, setQuery] = useState(() => {
     if (typeof window === 'undefined') return ''
     return sessionStorage.getItem(SEARCH_STORAGE_KEY) || ''
@@ -76,15 +79,19 @@ export default function ClientsTable({ initialClients }) {
     window.location.reload()
   }
 
-  async function handleDelete(id) {
-    if (!confirm('Delete this client?')) return
-    const result = await deleteClient(id)
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    const result = await deleteClient(deleteTarget.id)
+    setDeleting(false)
+
     if (result.error) {
       toast.error(result.error)
       return
     }
+    setDeleteTarget(null)
     toast.success('Client deleted')
-    router.refresh()
+    window.location.reload()
   }
 
   const columns = [
@@ -150,7 +157,7 @@ export default function ClientsTable({ initialClients }) {
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetails(c)}>
                 <IdCard className="w-3.5 h-3.5 text-muted-foreground" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(c.id)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteTarget(c)}>
                 <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
               </Button>
             </div>
@@ -215,6 +222,25 @@ export default function ClientsTable({ initialClients }) {
               <Button type="submit">Save</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="animate-in fade-in zoom-in-95 duration-200">
+          <DialogHeader>
+            <DialogTitle>Delete client</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete <span className="font-medium text-foreground">{deleteTarget?.name}</span>? This cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={confirmDelete} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

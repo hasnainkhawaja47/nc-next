@@ -17,6 +17,8 @@ export default function ProductsTable({ initialProducts }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   function openAdd() {
     setEditing(null)
@@ -46,13 +48,17 @@ export default function ProductsTable({ initialProducts }) {
     window.location.reload()
   }
 
-  async function handleDelete(id) {
-    if (!confirm('Delete this product?')) return
-    const result = await deleteProduct(id)
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    const result = await deleteProduct(deleteTarget.id)
+    setDeleting(false)
+
     if (result.error) {
       toast.error(result.error)
       return
     }
+    setDeleteTarget(null)
     toast.success('Product deleted')
     window.location.reload()
   }
@@ -84,7 +90,7 @@ export default function ProductsTable({ initialProducts }) {
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)}>
               <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(p.id)}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteTarget(p)}>
               <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
             </Button>
           </div>
@@ -119,6 +125,24 @@ export default function ProductsTable({ initialProducts }) {
               <Button type="submit">Save</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete product</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete <span className="font-medium text-foreground">{deleteTarget?.name}</span>? This cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={confirmDelete} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
