@@ -87,12 +87,13 @@ export async function getLedger(firmId, from, to) {
   const activePmtIds = new Set(activePmts.map((p) => p.id))
   allPmts.forEach((p) => {
     const bankPart = p.bank_name ? ` — ${p.bank_name}${p.cheque_number ? ' · Ref: ' + p.cheque_number : ''}` : ''
+    const memoPart = p.memo ? ` (Memo: ${p.memo})` : ''
     entries.push({
       date: p.payment_date,
       type: 'payment',
       id: p.id,
       isActive: activePmtIds.has(p.id),
-      description: `${p.method}${bankPart}`,
+      description: `${p.method}${bankPart}${memoPart}`,
       credit: 0,
       debit: p.amount || 0,
     })

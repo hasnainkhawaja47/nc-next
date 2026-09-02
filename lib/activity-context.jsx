@@ -27,6 +27,10 @@ export function ActivityProvider({ children }) {
     persist([entry, ...entries].slice(0, 20))
   }
 
+  function clearAll() {
+  persist([])
+}
+
   function removeActivity(billId) {
     persist(entries.filter((e) => e.billId !== billId))
   }
@@ -47,7 +51,7 @@ export function ActivityProvider({ children }) {
   }
   return (
     <ActivityContext.Provider
-      value={{ entries, addActivity, updateActivity, removeActivity }}
+      value={{ entries, addActivity, updateActivity, removeActivity, clearAll }}
     >      {children}
     </ActivityContext.Provider>
   )

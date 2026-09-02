@@ -52,10 +52,18 @@ export default async function TodaysPayments() {
               key={p.id}
               className="border-b border-border last:border-0 transition-colors duration-150 hover:bg-muted/50"
             >
-              <td className="py-2 text-foreground/80">{p.firms?.name || '—'}</td>
-              <td className="py-2 tabular-nums text-foreground">{fmt(p.amount)}</td>
-              <td className="py-2 text-foreground/80">{p.method || '—'}</td>
-              <td className="py-2 text-foreground/80">{p.bank_name || '—'}</td>
+              <td className="py-2 pr-4 text-foreground/80">{p.firms?.name || '—'}</td>
+              <td className="py-2 pr-4 tabular-nums text-foreground">{fmt(p.amount)}</td>
+              <td className="py-2 pr-4 text-foreground/80">{p.method || '—'}</td>
+              <td className="py-2 pr-4 text-foreground/80">
+                {p.bank_name || '—'}
+                {p.memo && (
+                  <>
+                    {p.bank_name && <br />}
+                    <span className="text-muted-foreground text-xs">Memo: {p.memo}</span>
+                  </>
+                )}
+              </td>
               <td className="py-2">
                 <div className="flex justify-end gap-1">
                   <EditPaymentDialog paymentId={p.id} />

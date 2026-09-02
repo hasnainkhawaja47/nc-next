@@ -40,6 +40,22 @@ export async function saveBill(data) {
   const { error: itemsError } = await supabase.from('bill_items').insert(billItems)
   if (itemsError) console.error('Bill items error:', itemsError.message)
 
+  // Cash bills are paid in full at the time of sale, so auto-log a matching
+  // payment to cancel the bill out of the firm's outstanding balance. This
+  // isn't retroactively kept in sync if the bill is edited later — editing
+  // a cash bill's amount or switching it to Credit won't adjust this
+  // payment.
+  if (!is_credit) {
+    const { error: paymentError } = await supabase.from('payments').insert({
+      firm_id,
+      payment_date: bill_date,
+      amount: total_amount,
+      method: 'Cash',
+      memo: `Auto-generated for Bill #${newBill.id}`,
+    })
+    if (paymentError) console.error('Auto cash-payment error:', paymentError.message)
+  }
+
   // Anomaly checks
   const { data: recentBills } = await supabase
     .from('bills')

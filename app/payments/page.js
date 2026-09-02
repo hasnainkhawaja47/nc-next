@@ -44,6 +44,12 @@ export default async function PaymentsPage() {
       render: (p) => (
         <span className="block max-w-[140px] whitespace-normal break-words">
           {p.bank_name || '—'}
+          {p.memo && (
+            <>
+              {p.bank_name && <br />}
+              <span className="text-muted-foreground">Memo: {p.memo}</span>
+            </>
+          )}
         </span>
       ),
     },
