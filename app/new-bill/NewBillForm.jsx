@@ -402,6 +402,7 @@ function BillTotals({ control, prevBalance }) {
   const items = useWatch({ control, name: 'items' })
   const biltyCharges = useWatch({ control, name: 'bilty_charges' })
   const packagingCharges = useWatch({ control, name: 'packaging_charges' })
+  const isCredit = useWatch({ control, name: 'is_credit' })
 
   const itemsTotal = (items || []).reduce(
     (s, i) => s + (Number(i.quantity) || 0) * (Number(i.price) || 0),
@@ -409,7 +410,10 @@ function BillTotals({ control, prevBalance }) {
   )
   const grandTotal = itemsTotal + Number(biltyCharges || 0) + Number(packagingCharges || 0)
   const amountWords = grandTotal > 0 ? toWords.convert(grandTotal, { currency: true }) : ''
-  const newBalance = prevBalance != null ? prevBalance + grandTotal : null
+  // Cash bills get an auto-offsetting payment on save, so they don't move
+  // the balance — mirror that here so the preview matches what actually
+  // happens after saving.
+  const newBalance = prevBalance != null ? prevBalance + (isCredit ? grandTotal : 0) : null
 
   return (
     <div className="text-right">

@@ -1,9 +1,10 @@
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 
 const styles = StyleSheet.create({
-  page: { padding: 24, fontSize: 10, fontFamily: 'Helvetica' },
+  page: { padding: 20, fontSize: 10, fontFamily: 'Helvetica' },
   header: { alignItems: 'left', marginBottom: 12 },
-  logo: { fontSize: 16, fontFamily: 'Times-Bold', letterSpacing: 1.0 },
+  label: { fontFamily: 'Helvetica-Bold' },
+  logo: { fontSize: 16, fontFamily: 'Times-Bold' },
   sub: { fontSize: 9, color: '#666', marginTop: 4 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   metaRight: { textAlign: 'right' },
@@ -27,24 +28,23 @@ const styles = StyleSheet.create({
 
 // Just the page content — reusable for both single and bulk documents
 export function BillPage({ bill, firmName, items, amountWords, prevBalance }) {
-  const newBalance = prevBalance + bill.total_amount
-
+  const newBalance = prevBalance + (bill.is_credit ? bill.total_amount : 0)
   return (
     <Page size="A5" style={styles.page}>
       <View style={styles.header}>
         <Text style={styles.logo}>{firmName}</Text>
-        <Text style={styles.sub}>Bill / Invoice</Text>    
+        <Text style={styles.sub}>Bill / Invoice</Text>
       </View>
 
       <View style={styles.metaRow}>
         <View>
-          <Text>Bill #: {bill.id}</Text>
-          {bill.bilty_no ? <Text>Bilty #: {bill.bilty_no}</Text> : null}
-          {bill.do_no ? <Text>D/O #: {bill.do_no}</Text> : null}
+          <Text><Text style={styles.label}>Bill #: </Text>{bill.id}</Text>
+          {bill.bilty_no ? <Text><Text style={styles.label}>Bilty #: </Text>{bill.bilty_no}</Text> : null}
+          {bill.do_no ? <Text><Text style={styles.label}>D/O #: </Text>{bill.do_no}</Text> : null}
         </View>
         <View style={styles.metaRight}>
-          <Text>Date: {bill.bill_date}</Text>
-          <Text>Type: {bill.is_credit ? 'Credit' : 'Cash'}</Text>
+          <Text><Text style={styles.label}>Date: </Text>{bill.bill_date}</Text>
+          <Text><Text style={styles.label}>Type: </Text>{bill.is_credit ? 'Credit' : 'Cash'}</Text>
         </View>
       </View>
 
