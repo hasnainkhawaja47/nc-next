@@ -84,7 +84,26 @@ export async function saveBill(data) {
   revalidatePath('/new-bill')
   return { success: true, bill: { ...newBill, total_amount }, items: billItems, anomalies }
 }
+export async function getBalanceAsOf(firmId, beforeDate, beforeId) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 0
 
+  const billCutoff = `bill_date.lt.${beforeDate},and(bill_date.eq.${beforeDate},id.lt.${beforeId})`
+
+  const [billsSum, pmtsSum, archBillsSum, archPmtsSum] = await Promise.all([
+    supabase.from('bills').select('total_amount').eq('firm_id', firmId).eq('is_credit', true).or(billCutoff),
+    supabase.from('payments').select('amount').eq('firm_id', firmId).lte('payment_date', beforeDate),
+    supabase.from('archive_bills').select('total_amount').eq('firm_id', firmId).eq('is_credit', true).or(billCutoff),
+    supabase.from('archive_payments').select('amount').eq('firm_id', firmId).lte('payment_date', beforeDate),
+  ])
+  const billTotal = (billsSum.data || []).reduce((s, b) => s + (b.total_amount || 0), 0)
+  const pmtTotal = (pmtsSum.data || []).reduce((s, p) => s + (p.amount || 0), 0)
+  const archBillTotal = (archBillsSum.data || []).reduce((s, b) => s + (b.total_amount || 0), 0)
+  const archPmtTotal = (archPmtsSum.data || []).reduce((s, p) => s + (p.amount || 0), 0)
+
+  return (billTotal + archBillTotal) - (pmtTotal + archPmtTotal)
+}
 export async function getPreviousBalance(firmId) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

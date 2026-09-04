@@ -15,7 +15,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { X } from 'lucide-react'
-import { saveBill, updateBill, getPreviousBalance } from './actions'
+import { saveBill, updateBill, getPreviousBalance, getBalanceAsOf } from './actions'
 import { useActivity } from '@/lib/activity-context'
 import { forwardRef } from 'react'
 
@@ -497,9 +497,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
       const firm = firms.find((f) => f.id === initialBill.bill.firm_id)
       if (firm) {
         setClientQuery(firm.name)
-        getPreviousBalance(firm.id).then((bal) => {
-          setPrevBalance(bal - initialBill.bill.total_amount)
-        })
+        getBalanceAsOf(firm.id, initialBill.bill.bill_date, initialBill.bill.id).then(setPrevBalance)
       }
     } else {
       setClientQuery('')

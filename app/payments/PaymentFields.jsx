@@ -78,13 +78,12 @@ export default function PaymentFields({
           className="grid grid-cols-2 gap-2"
           disabled={disabled}
         >
-          {['Cash', 'Cheque', 'Bank Transfer', 'Draft'].map((option) => (
+          {['Cash', 'Cheque', 'Bank Transfer', 'Return'].map((option) => (
             <label
               key={option}
               htmlFor={option}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm cursor-pointer transition-colors ${
-                method === option ? 'border-primary bg-muted/50' : 'hover:bg-muted/30'
-              }`}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm cursor-pointer transition-colors ${method === option ? 'border-primary bg-muted/50' : 'hover:bg-muted/30'
+                }`}
             >
               <RadioGroupItem value={option} id={option} />
               {option}
@@ -93,7 +92,7 @@ export default function PaymentFields({
         </RadioGroup>
       </div>
 
-      {method !== 'Cash' && (
+      {(method === 'Cheque' || method === 'Bank Transfer') && (
         <div className="space-y-4 animate-in fade-in slide-in-from-top-1">
           <div className="space-y-1.5">
             <Label>Bank name</Label>
@@ -108,7 +107,13 @@ export default function PaymentFields({
 
       <div className="space-y-1.5">
         <Label>Memo</Label>
-        <Input className="h-10 rounded-lg" name="memo" placeholder="Optional note" defaultValue={memoDefault} disabled={disabled} />
+        <Input
+          className="h-10 rounded-lg"
+          name="memo"
+          placeholder={method === 'Return' ? 'Which items were returned...' : 'Optional note'}
+          defaultValue={memoDefault}
+          disabled={disabled}
+        />
       </div>
 
       {balance != null && (

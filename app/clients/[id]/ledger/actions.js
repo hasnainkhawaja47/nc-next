@@ -10,6 +10,7 @@ async function getRows(supabase, table, columns, firmId, from, to, dateCol) {
     let q = supabase.from(table).select(columns).eq('firm_id', firmId)
     if (from) q = q.gte(dateCol, from)
     if (to) q = q.lte(dateCol, to)
+    q = q.order(dateCol, { ascending: true }).order('id', { ascending: true })
     const { data, error } = await q.range(start, start + pageSize - 1)
     if (error || !data || data.length === 0) break
     allRows = allRows.concat(data)
