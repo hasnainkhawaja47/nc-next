@@ -44,10 +44,10 @@ export async function getLedger(firmId, from, to) {
   const toDate = to || null
 
   const [activeBills, activePmts, archiveBills, archivePmts] = await Promise.all([
-    getRows(supabase, 'bills', 'id, bill_date, total_amount, bilty_no, do_no, is_credit', firmId, fromDate, toDate, 'bill_date'),
-    getRows(supabase, 'payments', 'id, payment_date, amount, method, bank_name, cheque_number, memo', firmId, fromDate, toDate, 'payment_date'),
-    getRows(supabase, 'archive_bills', 'id, bill_date, total_amount, bilty_no, do_no, is_credit', firmId, fromDate, toDate, 'bill_date'),
-    getRows(supabase, 'archive_payments', 'id, payment_date, amount, method, bank_name, cheque_number, memo', firmId, fromDate, toDate, 'payment_date'),
+    getRows(supabase, 'bills', 'id, bill_date, total_amount, bilty_no, do_no, is_credit, created_at', firmId, fromDate, toDate, 'bill_date'),
+    getRows(supabase, 'payments', 'id, payment_date, amount, method, bank_name, cheque_number, memo, created_at', firmId, fromDate, toDate, 'payment_date'),
+    getRows(supabase, 'archive_bills', 'id, bill_date, total_amount, bilty_no, do_no, is_credit, created_at', firmId, fromDate, toDate, 'bill_date'),
+    getRows(supabase, 'archive_payments', 'id, payment_date, amount, method, bank_name, cheque_number, memo, created_at', firmId, fromDate, toDate, 'payment_date'),
   ])
 
   let openingBalance = 0
@@ -82,6 +82,7 @@ export async function getLedger(firmId, from, to) {
       description: `Bill # ${b.id}${b.bilty_no ? ' · Bilty: ' + b.bilty_no : ''}`,
       credit: b.total_amount || 0,
       debit: 0,
+      createdAt: b.created_at,
     })
   })
 
@@ -97,6 +98,7 @@ export async function getLedger(firmId, from, to) {
       description: `${p.method}${bankPart}${memoPart}`,
       credit: 0,
       debit: p.amount || 0,
+      createdAt: p.created_at,
     })
   })
 
@@ -104,9 +106,7 @@ export async function getLedger(firmId, from, to) {
     if (a.date !== b.date) return a.date.localeCompare(b.date)
     if (a.type === 'opening') return -1
     if (b.type === 'opening') return 1
-    if (a.type === 'bill' && b.type !== 'bill') return -1
-    if (b.type === 'bill' && a.type !== 'bill') return 1
-    return 0
+    return (a.createdAt || '').localeCompare(b.createdAt || '')
   })
 
   let running = fromDate ? openingBalance : 0
