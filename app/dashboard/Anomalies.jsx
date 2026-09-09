@@ -21,17 +21,17 @@ export default function Anomalies({ items, delayMs = 0 }) {
         <AlertTriangle className="h-4 w-4 text-amber-500" />
         <h2 className="text-sm font-medium text-foreground">Anomalies</h2>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-3 h-[280px] overflow-y-auto pr-1">
         {items.length === 0 && (
           <p className="text-xs text-muted-foreground">No open anomalies</p>
         )}
         {items.map((an) => (
           <div
             key={an.id}
-            className="rounded-lg border border-amber-100 bg-amber-50/50 p-2.5"
+            className="rounded-lg border border-amber-200 bg-amber-50/50 p-2.5 dark:border-amber-900/40 dark:bg-amber-500/10"
           >
             <div className="mb-1 flex items-center justify-between">
-              <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+              <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
                 {an.type}
               </span>
               <div className="flex items-center gap-2">

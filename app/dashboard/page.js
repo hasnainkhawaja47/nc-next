@@ -45,9 +45,9 @@ export default async function DashboardPage() {
     supabase.from('anomalies').select('id', { count: 'exact', head: true }).or('dismissed.is.null,dismissed.eq.false'),
     supabase.from('bills').select('id').gte('bill_date', thisMonth.start).lt('bill_date', thisMonth.end),
     supabase.from('firms').select('id, name'),
-    supabase.from('bills').select('id, bill_date, total_amount, firm_id, firms(name)').order('bill_date', { ascending: false }).limit(5),
-    supabase.from('payments').select('id, payment_date, amount, firm_id, firms(name)').order('payment_date', { ascending: false }).limit(5),
-    supabase.from('anomalies').select('id, type, firm_name, details, detected_at').or('dismissed.is.null,dismissed.eq.false').order('detected_at', { ascending: false }).limit(5),
+    supabase.from('bills').select('id, bill_date, total_amount, firm_id, firms(name)').order('bill_date', { ascending: false }).limit(6),
+    supabase.from('payments').select('id, payment_date, amount, firm_id, firms(name)').order('payment_date', { ascending: false }).limit(6),
+    supabase.from('anomalies').select('id, type, firm_name, details, detected_at').or('dismissed.is.null,dismissed.eq.false').order('detected_at', { ascending: false }).limit(6),
   ])
 
   // Stats
@@ -119,7 +119,7 @@ export default async function DashboardPage() {
     })),
   ]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 6)
+    .slice(0, 9)
     .map((a) => ({
       ...a,
       date: new Date(a.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
@@ -148,7 +148,7 @@ export default async function DashboardPage() {
           <TopClients topFive={topClients} allClients={allClientsByBalance} delayMs={280} />
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
           <RecentActivity items={activity} delayMs={340} />
           <Anomalies items={anomalyRows || []} delayMs={400} />
         </div>
