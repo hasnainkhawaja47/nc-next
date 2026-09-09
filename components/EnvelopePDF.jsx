@@ -14,6 +14,7 @@ import {
 } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { Mail } from "lucide-react";
+import { Loader2 } from 'lucide-react'
 
 // Commercial #10 = 9.5in wide x 4.125in tall (landscape) -> points (1in = 72pt)
 const ENVELOPE_SIZE = [9.5 * 72, 4.125 * 72];
@@ -67,7 +68,7 @@ export function EnvelopePDFDownloadButton({ firm }) {
 
   if (!hasAddress) {
     return (
-      <Button type="button" variant="outline" disabled title="Add an address to this client first">
+      <Button type="button" variant="outline" disabled title="Add an address to this client first" className="w-[150px] justify-center">
         <Mail className="w-4 h-4 mr-1.5" />
         Print envelope
       </Button>
@@ -77,8 +78,12 @@ export function EnvelopePDFDownloadButton({ firm }) {
   return (
     <PDFDownloadLink document={<EnvelopePDF firm={firm} />} fileName={fileName}>
       {({ loading }) => (
-        <Button type="button" variant="outline" disabled={loading}>
-          <Mail className="w-4 h-4 mr-1.5" />
+        <Button type="button" variant="outline" disabled={loading} className="w-[150px] justify-center">
+          {loading ? (
+            <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+          ) : (
+            <Mail className="w-4 h-4 mr-1.5" />
+          )}
           {loading ? "Preparing..." : "Print envelope"}
         </Button>
       )}

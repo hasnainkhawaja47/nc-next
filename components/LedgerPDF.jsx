@@ -16,6 +16,7 @@ import {
 } from "@react-pdf/renderer";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import { Loader2 } from 'lucide-react'
 
 const styles = StyleSheet.create({
   page: {
@@ -247,8 +248,12 @@ export function LedgerPDFDownloadButton({ entries, firm, dateRange, totals }) {
       fileName={fileName}
     >
       {({ loading }) => (
-        <Button type="button" variant="outline" disabled={loading}>
-          <Download className="w-4 h-4 mr-1.5" />
+        <Button type="button" variant="outline" disabled={loading} className="w-[150px] justify-center">
+          {loading ? (
+            <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4 mr-1.5" />
+          )}
           {loading ? "Preparing..." : "Download PDF"}
         </Button>
       )}

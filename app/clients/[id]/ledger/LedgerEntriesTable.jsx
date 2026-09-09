@@ -36,14 +36,17 @@ export default function LedgerEntriesTable({ entries }) {
           ) : (
             entries.map((e, i) => {
               const isBillRow = e.type === 'bill'
+              const delay = Math.min(i * 20, 300)
               return (
                 <TableRow
                   key={i}
                   className={
-                    e.type === 'opening'
+                    (e.type === 'opening'
                       ? 'bg-muted/40 italic text-muted-foreground'
-                      : `transition-colors hover:bg-muted/50 ${isBillRow ? 'cursor-pointer' : ''}`
+                      : `transition-colors hover:bg-muted/50 ${isBillRow ? 'cursor-pointer' : ''}`) +
+                    ' animate-in fade-in slide-in-from-bottom-1 duration-200'
                   }
+                  style={{ animationDelay: `${delay}ms`, animationFillMode: 'backwards' }}
                   onClick={() => {
                     if (isBillRow) {
                       setSelectedBill({ id: e.id, isArchive: !e.isActive })

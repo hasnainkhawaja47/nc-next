@@ -8,13 +8,16 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import dynamic from 'next/dynamic'
+import { Skeleton } from '@/components/ui/skeleton'
+
+
 const LedgerPDFDownloadButton = dynamic(
   () => import('@/components/LedgerPDF').then((mod) => mod.LedgerPDFDownloadButton),
-  { ssr: false }
+  { ssr: false, loading: () => <Skeleton className="h-9 w-[150px]" /> }
 )
 const EnvelopePDFDownloadButton = dynamic(
   () => import('@/components/EnvelopePDF').then((mod) => mod.EnvelopePDFDownloadButton),
-  { ssr: false }
+  { ssr: false, loading: () => <Skeleton className="h-9 w-[150px]" /> }
 )
 
 function toISODate(date) {

@@ -46,8 +46,8 @@ export async function getLedger(firmId, from, to) {
   const [activeBills, activePmts, archiveBills, archivePmts] = await Promise.all([
     getRows(supabase, 'bills', 'id, bill_date, total_amount, bilty_no, do_no, is_credit, created_at', firmId, fromDate, toDate, 'bill_date'),
     getRows(supabase, 'payments', 'id, payment_date, amount, method, bank_name, cheque_number, memo, created_at', firmId, fromDate, toDate, 'payment_date'),
-    getRows(supabase, 'archive_bills', 'id, bill_date, total_amount, bilty_no, do_no, is_credit, created_at', firmId, fromDate, toDate, 'bill_date'),
-    getRows(supabase, 'archive_payments', 'id, payment_date, amount, method, bank_name, cheque_number, memo, created_at', firmId, fromDate, toDate, 'payment_date'),
+    getRows(supabase, 'archive_bills', 'id, bill_date, total_amount, bilty_no, do_no, is_credit', firmId, fromDate, toDate, 'bill_date'),
+    getRows(supabase, 'archive_payments', 'id, payment_date, amount, method, bank_name, cheque_number, memo', firmId, fromDate, toDate, 'payment_date'),
   ])
 
   let openingBalance = 0
@@ -106,7 +106,10 @@ export async function getLedger(firmId, from, to) {
     if (a.date !== b.date) return a.date.localeCompare(b.date)
     if (a.type === 'opening') return -1
     if (b.type === 'opening') return 1
-    return (a.createdAt || '').localeCompare(b.createdAt || '')
+    if (a.createdAt && b.createdAt) return a.createdAt.localeCompare(b.createdAt)
+    if (a.createdAt) return -1
+    if (b.createdAt) return 1
+    return (a.id || 0) - (b.id || 0)
   })
 
   let running = fromDate ? openingBalance : 0

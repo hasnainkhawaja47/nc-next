@@ -16,22 +16,30 @@ export default async function LedgerPage({ params, searchParams }) {
   const ledger = await getLedger(id, from, to)
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
-      <h1 className="text-xl sm:text-2xl font-semibold mb-4 flex items-center justify-center gap-2">
+    <div className="p-4 sm:p-6 max-w-4xl xl:max-w-5xl mx-auto">
+      <h1 className="text-xl sm:text-2xl font-semibold mb-4 flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top-1 duration-300">
         <BookOpen className="w-5 h-5 text-muted-foreground" />
         {firm?.name || 'Ledger'}
       </h1>
 
-      <LedgerFilter
-        firmId={id}
-        defaultFrom={from}
-        defaultTo={to}
-        entries={ledger.entries}
-        firm={firm}
-        totals={{ totalBilled: ledger.totalBilled, totalPaid: ledger.totalPaid, balance: ledger.balance }}
-      />
+      <div
+        className="animate-in fade-in slide-in-from-bottom-1 duration-300"
+        style={{ animationDelay: '75ms', animationFillMode: 'backwards' }}
+      >
+        <LedgerFilter
+          firmId={id}
+          defaultFrom={from}
+          defaultTo={to}
+          entries={ledger.entries}
+          firm={firm}
+          totals={{ totalBilled: ledger.totalBilled, totalPaid: ledger.totalPaid, balance: ledger.balance }}
+        />
+      </div>
 
-      <div className="grid grid-cols-3 gap-3 my-4 animate-in fade-in duration-300">
+      <div
+        className="grid grid-cols-3 gap-3 my-4 animate-in fade-in slide-in-from-bottom-1 duration-300"
+        style={{ animationDelay: '150ms', animationFillMode: 'backwards' }}
+      >
         <div className="border rounded-md p-3">
           <div className="text-xs text-muted-foreground">Total billed</div>
           <div className="text-lg font-semibold">Rs {ledger.totalBilled.toLocaleString()}</div>
@@ -48,7 +56,12 @@ export default async function LedgerPage({ params, searchParams }) {
         </div>
       </div>
 
-      <LedgerEntriesTable entries={ledger.entries} />
+      <div
+        className="animate-in fade-in slide-in-from-bottom-1 duration-300"
+        style={{ animationDelay: '225ms', animationFillMode: 'backwards' }}
+      >
+        <LedgerEntriesTable entries={ledger.entries} />
+      </div>
     </div>
   )
 }
