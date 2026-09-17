@@ -1,6 +1,95 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { ToWords } from 'to-words'
+
+const toWords = new ToWords({
+  localeCode: 'en-IN',
+  converterOptions: { currency: true, ignoreDecimal: true },
+})
+
+// Balance strictly before a given bill, using the same tie-break order
+// (date, then created_at, then id) as getLedger's running balance.
+async function getBalanceAsOf(supabase, firmId, bill) {
+  const opening = await getOpeningBalance(supabase, firmId, bill.bill_date)
+
+  const [sameDayBills, sameDayPmts, sameDayArchBills, sameDayArchPmts] = await Promise.all([
+    supabase.from('bills').select('id, total_amount, created_at').eq('firm_id', firmId).eq('bill_date', bill.bill_date),
+    supabase.from('payments').select('id, amount, created_at').eq('firm_id', firmId).eq('payment_date', bill.bill_date),
+    supabase.from('archive_bills').select('id, total_amount').eq('firm_id', firmId).eq('bill_date', bill.bill_date),
+    supabase.from('archive_payments').select('id, amount').eq('firm_id', firmId).eq('payment_date', bill.bill_date),
+  ])
+
+  const sameDay = [
+    ...(sameDayBills.data || []).map((b) => ({ id: b.id, amount: b.total_amount, createdAt: b.created_at, isCredit: true })),
+    ...(sameDayArchBills.data || []).map((b) => ({ id: b.id, amount: b.total_amount, createdAt: null, isCredit: true })),
+    ...(sameDayPmts.data || []).map((p) => ({ id: p.id, amount: p.amount, createdAt: p.created_at, isCredit: false })),
+    ...(sameDayArchPmts.data || []).map((p) => ({ id: p.id, amount: p.amount, createdAt: null, isCredit: false })),
+  ]
+
+  sameDay.sort((a, b) => {
+    if (a.createdAt && b.createdAt) return a.createdAt.localeCompare(b.createdAt)
+    if (a.createdAt) return -1
+    if (b.createdAt) return 1
+    return (a.id || 0) - (b.id || 0)
+  })
+
+  let sum = 0
+  for (const entry of sameDay) {
+    if (entry.isCredit && entry.id === bill.id) break // stop once we hit the target bill itself
+    sum += entry.isCredit ? entry.amount : -entry.amount
+  }
+
+  return opening + sum
+}
+
+// Bulk print for the ledger's selection checkboxes. Only ever called with
+// live (non-archive) bill ids — archived bills are excluded from selection
+// in the UI, so there's no isArchive branch here.
+export async function getBillsForPrint(billIds) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  if (!billIds || billIds.length === 0) return []
+
+  const { data: bills } = await supabase
+    .from('bills')
+    .select('id, firm_id, bill_date, bilty_no, do_no, is_credit, bilty_charges, packaging_charges, total_amount, created_at')
+    .in('id', billIds)
+
+  if (!bills || bills.length === 0) return []
+
+  const firmIds = [...new Set(bills.map((b) => b.firm_id))]
+  const { data: firms } = await supabase.from('firms').select('id, name').in('id', firmIds)
+  const firmNameMap = {}
+    ; (firms || []).forEach((f) => { firmNameMap[f.id] = f.name })
+
+  const { data: allItems } = await supabase
+    .from('bill_items')
+    .select('id, bill_id, product_name, colour, size, quantity, price, total')
+    .in('bill_id', billIds)
+  const itemsByBill = {}
+    ; (allItems || []).forEach((it) => {
+      if (!itemsByBill[it.bill_id]) itemsByBill[it.bill_id] = []
+      itemsByBill[it.bill_id].push(it)
+    })
+
+  const entries = await Promise.all(
+    bills.map(async (bill) => ({
+      billId: bill.id,
+      bill,
+      firmName: firmNameMap[bill.firm_id] || '',
+      items: itemsByBill[bill.id] || [],
+      amountWords: toWords.convert(bill.total_amount || 0),
+      prevBalance: await getBalanceAsOf(supabase, bill.firm_id, bill),
+    }))
+  )
+
+  const order = new Map(billIds.map((id, i) => [id, i]))
+  entries.sort((a, b) => order.get(a.billId) - order.get(b.billId))
+
+  return entries
+}
 
 async function getRows(supabase, table, columns, firmId, from, to, dateCol) {
   let allRows = []
