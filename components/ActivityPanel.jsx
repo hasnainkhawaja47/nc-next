@@ -212,7 +212,7 @@ export default function ActivityPanel() {
                     className="
                     fixed z-40 bottom-5 right-5
                     w-[calc(100vw-2.5rem)] max-w-sm
-                    max-h-[70vh]
+                    h-[50vh]
                     rounded-xl p-0 overflow-hidden
                     shadow-xl
                     flex flex-col
@@ -374,7 +374,7 @@ export default function ActivityPanel() {
                                                 select-none
                                                 animate-in fade-in slide-in-from-right-3
                                                 ${selectMode ? 'cursor-pointer' : ''}
-                                                ${isSelected ? 'bg-blue-50' : 'hover:bg-muted/40'}
+                                                ${isSelected ? 'bg-blue-50 dark:bg-blue-950/40' : 'hover:bg-muted/40'}
                                             `}
                                         >
                                             <div className="flex items-start gap-2">
@@ -402,7 +402,7 @@ export default function ActivityPanel() {
                                                     </div>
 
                                                     {/* Client + date */}
-                                                    <div className="text-xs text-gray-500 mb-2">
+                                                    <div className="text-xs dark:text-gray-400 mb-2">
                                                         {entry.firmName} · {entry.date}
                                                     </div>
 
@@ -421,9 +421,7 @@ export default function ActivityPanel() {
                                                                                 className="
                                                                                 inline-flex items-center justify-center
                                                                                 w-8 h-8 rounded-md
-                                                                                text-blue-600
-                                                                                hover:bg-blue-50
-                                                                                hover:text-blue-700
+                                                                                dark:text-blue-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-300
                                                                                 transition-all duration-150
                                                                                 hover:scale-110
                                                                                 active:scale-95
@@ -545,9 +543,7 @@ export default function ActivityPanel() {
                                                                                 className="
                                                                                 inline-flex items-center justify-center
                                                                                 w-8 h-8 rounded-md
-                                                                                text-red-600
-                                                                                hover:bg-red-50
-                                                                                hover:text-red-700
+                                                                                dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300
                                                                                 transition-all duration-150
                                                                                 hover:scale-110
                                                                                 active:scale-95

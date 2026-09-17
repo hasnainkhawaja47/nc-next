@@ -688,7 +688,7 @@ export default function NewBillForm({ firms, products, initialBill }) {
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Bilty #</Label>
               <Input
-                maxLength={15}
+                maxLength={30}
                 className={(submitted || touchedFields.bilty_no) && errors.bilty_no ? 'border-red-500' : ''}
                 {...register('bilty_no')}
               />

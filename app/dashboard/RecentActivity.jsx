@@ -16,7 +16,7 @@ export default function RecentActivity({ items, delayMs = 0 }) {
         <FileText className="h-4 w-4 text-muted-foreground" />
         <h2 className="text-sm font-medium text-foreground">Recent Activity</h2>
       </div>
-      <div className="h-[280px] overflow-hidden">
+      <div className="h-[280px] overflow-y-auto">
         <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-x-2 gap-y-3 text-sm">
           {items.map((a, i) => (
             <React.Fragment key={i}>
@@ -34,7 +34,7 @@ export default function RecentActivity({ items, delayMs = 0 }) {
                   "inline-flex w-20 items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium " +
                   (a.type === "bill"
                     ? "bg-muted text-foreground/80"
-                    : "bg-emerald-50 text-emerald-600")
+                    : "bg-emerald-500/10 text-emerald-500 dark:text-emerald-400")
                 }
               >
                 {a.type === "bill" ? "Billed" : "Collected"}
