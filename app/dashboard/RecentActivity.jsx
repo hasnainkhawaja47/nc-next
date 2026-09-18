@@ -1,6 +1,6 @@
 import React from "react";
 import { FileText } from "lucide-react";
-import { formatPKR } from "./mockData";
+import { formatPKR } from "@/lib/format"
 
 export default function RecentActivity({ items, delayMs = 0 }) {
   return (

@@ -1,30 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Receipt, Wallet, TrendingUp } from "lucide-react";
 
 import StatCard from "./StatCard";
-import DashboardSkeleton from "./DashboardSkeleton";
-import { formatPKR } from "./mockData";
+import { formatPKR } from "@/lib/format"
 
-// stats: { receivables, billsThisMonth, billsLastMonth, paymentsThisMonth, paymentsLastMonth, openAnomalies }
-// revenueTrend: [{ month, total }]
+// stats: { receivables, collectionRate, paymentsThisMonth, paymentsLastMonth, openAnomalies }
 export default function DashboardClientSections({ stats }) {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(t);
-  }, []);
-
-  if (loading) return <DashboardSkeleton />;
-
-  const billsDeltaPct = stats.billsLastMonth
-    ? (
-      ((stats.billsThisMonth - stats.billsLastMonth) / stats.billsLastMonth) *
-      100
-    ).toFixed(0)
-    : "0";
   const paymentsDeltaPct = stats.paymentsLastMonth
     ? (
       ((stats.paymentsThisMonth - stats.paymentsLastMonth) /

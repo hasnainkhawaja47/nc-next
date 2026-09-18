@@ -1,6 +1,6 @@
 import React from "react";
 import { Users } from "lucide-react";
-import { formatPKR } from "./mockData";
+import { formatPKR } from "@/lib/format"
 import ViewAllClientsDialog from "./ViewAllClientsDialog";
 
 // topFive: first 5 clients to show inline

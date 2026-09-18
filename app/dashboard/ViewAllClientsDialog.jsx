@@ -7,7 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { formatPKR } from './mockData'
+import { formatPKR } from "@/lib/format"
 
 export default function ViewAllClientsDialog({ clients }) {
   return (
