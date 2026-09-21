@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { pdf } from '@react-pdf/renderer'
 import { toast } from 'sonner'
@@ -20,6 +20,12 @@ export default function LedgerEntriesTable({ entries }) {
   const [selectedBill, setSelectedBill] = useState(null) // { id, isArchive }
   const [selected, setSelected] = useState(new Set())
   const [bulkPrinting, startBulkPrint] = useTransition()
+  const scrollRef = useRef(null)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [entries])
 
   // Only live (non-archived) bills are ever selectable/printable.
   const selectableIds = entries
@@ -60,7 +66,7 @@ export default function LedgerEntriesTable({ entries }) {
         </div>
       )}
 
-      <div className="border rounded-md overflow-auto max-h-[60vh] animate-in fade-in duration-300">
+      <div  ref={scrollRef} className="border rounded-md overflow-auto max-h-[60vh] animate-in fade-in duration-300">
         <Table className="min-w-[600px]">
           <TableHeader>
             <TableRow>
