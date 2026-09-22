@@ -28,12 +28,12 @@ const styles = StyleSheet.create({
   },
   recipient: {
     position: "absolute",
-    top: 130,
-    left: 340,
+    top: 109.4,
+    left: 330,
     maxWidth: 300,
   },
-  recipientName: { fontSize: 12, fontFamily: "Helvetica-Bold", marginBottom: 3 },
-  recipientLine: { fontSize: 10.5, marginTop: 1 },
+  recipientName: { fontSize: 15, fontFamily: "Helvetica-Bold", marginBottom: 3 },
+  recipientLine: { fontSize: 12.5, marginTop: 1 },
 });
 
 /**

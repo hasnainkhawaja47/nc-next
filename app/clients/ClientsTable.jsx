@@ -14,9 +14,10 @@ import { Button } from '@/components/ui/button'
 import { Plus, IdCard, Trash2, X, BookOpen, Search } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 const SEARCH_STORAGE_KEY = 'clients-search-query'
+import { useRouter } from 'next/navigation'
 
 export default function ClientsTable({ initialClients }) {
-
+  const router = useRouter()
   const [clients] = useState(initialClients)
   const [modalOpen, setModalOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
@@ -26,13 +27,22 @@ export default function ClientsTable({ initialClients }) {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  const [query, setQuery] = useState(() => {
-    if (typeof window === 'undefined') return ''
-    return sessionStorage.getItem(SEARCH_STORAGE_KEY) || ''
-  })
+  const [query, setQuery] = useState('')
+  const [hydrated, setHydrated] = useState(false)
+
+  // Load persisted query after mount, once, so the first client render
+  // matches the server-rendered HTML (query === '').
   useEffect(() => {
-    sessionStorage.setItem(SEARCH_STORAGE_KEY, query)
-  }, [query])
+    setQuery(sessionStorage.getItem(SEARCH_STORAGE_KEY) || '')
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (hydrated) {
+      sessionStorage.setItem(SEARCH_STORAGE_KEY, query)
+    }
+  }, [query, hydrated])
+
   const filteredFirms = useMemo(() => {
     if (!query.trim()) return initialClients;
     const q = query.toLowerCase();
@@ -62,7 +72,7 @@ export default function ClientsTable({ initialClients }) {
     }
     setModalOpen(false)
     toast.success('Client added')
-    window.location.reload()
+    router.refresh()
   }
 
   async function handleDetailsSubmit(e) {
@@ -76,7 +86,7 @@ export default function ClientsTable({ initialClients }) {
     }
     setDetailsOpen(false)
     toast.success('Client updated')
-    window.location.reload()
+    router.refresh()
   }
 
   async function confirmDelete() {
@@ -91,7 +101,7 @@ export default function ClientsTable({ initialClients }) {
     }
     setDeleteTarget(null)
     toast.success('Client deleted')
-    window.location.reload()
+    router.refresh()
   }
 
   const columns = [
