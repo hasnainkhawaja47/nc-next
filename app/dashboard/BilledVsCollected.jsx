@@ -2,21 +2,42 @@ import { createClient } from '@/lib/supabase/server'
 import BilledVsCollectedChart from './BilledVsCollectedChartClient'
 import { BarChart3 } from 'lucide-react'
 
+const MONTHS_BACK = 6
+
+// 'YYYY-MM' key from a date string (works for 'YYYY-MM-DD' and ISO timestamps)
 function monthKey(dateStr) {
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+  return String(dateStr).slice(0, 7)
 }
 
-// Pulls last 6 months of bills + payments and groups both by month.
-// NOTE: assumes bills.total_amount holds the billed amount for that row —
-// adjust the select/column name if your bills table names it differently.
+// 'YYYY-MM' -> 'Nov 26'
+function monthLabel(key) {
+  const [y, m] = key.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('en-US', {
+    month: 'short',
+    year: '2-digit',
+    timeZone: 'UTC',
+  })
+}
+
+const pad = (n) => String(n).padStart(2, '0')
+
+// Pulls the last 6 FULL calendar months (including the current one)
+// of bills + payments and groups both by month, in chronological order.
 export default async function BilledVsCollected() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Unauthorized' }
-  const sixMonthsAgo = new Date()
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
-  const sinceDate = sixMonthsAgo.toISOString().split('T')[0]
+
+  // Build the list of month keys, oldest -> newest (e.g. 2026-06 ... 2026-11)
+  const now = new Date()
+  const keys = []
+  for (let i = MONTHS_BACK - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    keys.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`)
+  }
+
+  // Start from the 1st of the oldest month (no partial month)
+  const sinceDate = `${keys[0]}-01`
 
   const [{ data: bills }, { data: payments }] = await Promise.all([
     supabase
@@ -30,25 +51,22 @@ export default async function BilledVsCollected() {
   ])
 
   const billedByMonth = {}
-    ; (bills || []).forEach((b) => {
-      const k = monthKey(b.bill_date)
-      billedByMonth[k] = (billedByMonth[k] || 0) + (b.total_amount || 0)
-    })
+  ;(bills || []).forEach((b) => {
+    const k = monthKey(b.bill_date)
+    billedByMonth[k] = (billedByMonth[k] || 0) + (b.total_amount || 0)
+  })
 
   const collectedByMonth = {}
-    ; (payments || []).forEach((p) => {
-      const k = monthKey(p.payment_date)
-      collectedByMonth[k] = (collectedByMonth[k] || 0) + (p.amount || 0)
-    })
+  ;(payments || []).forEach((p) => {
+    const k = monthKey(p.payment_date)
+    collectedByMonth[k] = (collectedByMonth[k] || 0) + (p.amount || 0)
+  })
 
-  const months = Array.from(
-    new Set([...Object.keys(billedByMonth), ...Object.keys(collectedByMonth)])
-  )
-
-  const data = months.map((m) => ({
-    month: m,
-    billed: billedByMonth[m] || 0,
-    collected: collectedByMonth[m] || 0,
+  // Fixed, already-sorted month list; empty months show as 0
+  const data = keys.map((k) => ({
+    month: monthLabel(k),
+    billed: billedByMonth[k] || 0,
+    collected: collectedByMonth[k] || 0,
   }))
 
   return (
